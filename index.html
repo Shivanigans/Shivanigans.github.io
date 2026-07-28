@@ -6,12 +6,12 @@
 <title>Shivani Singh Ghoshi</title>
 
 <!--
-  Favicon placeholders. These are a plain dot standing in for the real
-  mark — swap both hrefs for a reduction of the monogram once it's
-  available, simplified until it still reads at 16px.
+  Favicon — the glasses from the monogram, simplified further so the
+  lens/bridge shape still reads at 16px. Swap for a proper export once
+  the real monogram file is available.
 -->
-<link rel="icon" type="image/svg+xml" sizes="32x32" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23171716' stroke-width='2.4'/%3E%3C/svg%3E">
-<link rel="icon" type="image/svg+xml" sizes="16x16" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='5.5' fill='none' stroke='%23171716' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" sizes="32x32" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='11' width='10' height='9' rx='2' fill='none' stroke='%23171716' stroke-width='2'/%3E%3Crect x='18' y='11' width='10' height='9' rx='2' fill='none' stroke='%23171716' stroke-width='2'/%3E%3Cpath d='M14 15.5 H18' stroke='%23171716' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" sizes="16x16" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='2' y='5.5' width='5' height='4.5' rx='1' fill='none' stroke='%23171716' stroke-width='1.4'/%3E%3Crect x='9' y='5.5' width='5' height='4.5' rx='1' fill='none' stroke='%23171716' stroke-width='1.4'/%3E%3Cpath d='M7 7.75 H9' stroke='%23171716' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E">
 
 <style>
 :root {
@@ -85,15 +85,9 @@ button:focus-visible {
 .nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-4);
   padding: var(--space-6) 0;
-}
-
-.nav-home {
-  font-weight: 600;
-  text-decoration: none;
-  font-size: var(--text-base);
 }
 
 .nav-links {
@@ -115,11 +109,20 @@ button:focus-visible {
   color: var(--color-text);
 }
 
+.resume-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.resume-link svg {
+  width: 10px;
+  height: 10px;
+}
+
 @media (max-width: 560px) {
   .nav {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
+    justify-content: flex-start;
   }
 
   .nav-links {
@@ -332,11 +335,16 @@ footer {
 </svg>
 
 <header class="nav container">
-  <a href="#" class="nav-home">Shivani Singh Ghoshi</a>
   <ul class="nav-links">
     <li><a href="#projects">Projects</a></li>
     <li><a href="#playground">Playground</a></li>
     <li><a href="#about">About</a></li>
+    <li>
+      <a class="resume-link" href="assets/resume.pdf" target="_blank" rel="noopener noreferrer">
+        Resume
+        <svg><use href="#arrow"></use></svg>
+      </a>
+    </li>
   </ul>
 </header>
 
@@ -344,29 +352,40 @@ footer {
 
   <section class="hero">
     <!--
-      MONOGRAM — replace with Shivani's actual mark (currentColor, ~40px).
-      Placeholder below is a plain circle standing in until the SVG arrives.
+      MONOGRAM — a hand-built simplification of Shivani's sketch (hair,
+      glasses, smile). Redrawn from the reference image rather than traced
+      pixel-for-pixel; swap for a proper vector export whenever one exists.
     -->
-    <svg class="monogram" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
-      <circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <svg class="monogram" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+      <path d="M6 20 Q4 10 14 6 Q22 2 30 6 Q40 10 38 20 Q40 28 34 34 Q32 30 30 26 Q28 32 24 36 Q22 30 22 26 Q20 32 16 36 Q14 30 12 26 Q10 30 8 34 Q4 28 6 20 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="10" y="18" width="9" height="7.5" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <rect x="24" y="18" width="9" height="7.5" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M19 21.5 H24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M16 30 Q22 34 28 30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
     </svg>
     <h1>Shivani Singh Ghoshi</h1>
-    <p class="tagline">I draw and make things. Some of it is climate data, some of it is for fun.</p>
+    <p class="tagline">Hi, I'm Shivani. I draw and make things, and when I do, I like them to be thoughtful and human.</p>
   </section>
 
   <section id="projects" class="section">
     <h2 class="section-heading">
-      <!-- SECTION MARKER — replace with monogram-derived glyph, ~20px -->
-      <svg class="marker" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-        <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <!-- SECTION MARKER — pulled from the monogram: glasses -->
+      <svg class="marker" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="2" y="8" width="8" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <rect x="14" y="8" width="8" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M10 10.5 H14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M2 10 L0.5 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M22 10 L23.5 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
       </svg>
       Projects
     </h2>
 
+    <!-- CEEW and Revisual Labs link out to "#" for now — Shivani's building a
+         dedicated page to click through each project's work. -->
     <div class="row">
       <div class="row-main">
         <span class="row-title">CEEW</span>
-        <span class="row-desc">Climate data stories. RAWGraphs, Flourish, Figma, Illustrator, QGIS.</span>
+        <span class="row-desc">Climate data stories.</span>
       </div>
       <a class="row-link" href="#" aria-label="CEEW project link">
         <svg><use href="#arrow"></use></svg>
@@ -376,9 +395,19 @@ footer {
     <div class="row">
       <div class="row-main">
         <span class="row-title">Revisual Labs</span>
-        <span class="row-desc">Illustration and design. Illustrator.</span>
+        <span class="row-desc">Illustration and design.</span>
       </div>
       <a class="row-link" href="#" aria-label="Revisual Labs project link">
+        <svg><use href="#arrow"></use></svg>
+      </a>
+    </div>
+
+    <div class="row">
+      <div class="row-main">
+        <span class="row-title">Behance</span>
+        <span class="row-desc">Visual design and illustration work.</span>
+      </div>
+      <a class="row-link" href="https://behance.net/shivanigans" target="_blank" rel="noopener noreferrer" aria-label="Behance visual design work">
         <svg><use href="#arrow"></use></svg>
       </a>
     </div>
@@ -386,9 +415,10 @@ footer {
 
   <section id="playground" class="section">
     <h2 class="section-heading">
-      <!-- SECTION MARKER — replace with monogram-derived glyph, ~20px -->
-      <svg class="marker" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-        <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <!-- SECTION MARKER — pulled from the monogram: thumbs-up -->
+      <svg class="marker" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 21 V11 Q9 9 11 9 H13 Q13 9 13 7 V4.5 Q13 3 14.5 3 Q16 3 16 4.5 V9 H18.5 Q20 9 19.7 10.5 L18.5 18 Q18 21 15 21 H9 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M9 12 H6.5 Q5 12 5 13.5 V19.5 Q5 21 6.5 21 H9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
       </svg>
       Playground
     </h2>
@@ -424,16 +454,17 @@ footer {
 
   <section id="about" class="section">
     <h2 class="section-heading">
-      <!-- SECTION MARKER — replace with monogram-derived glyph, ~20px -->
-      <svg class="marker" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-        <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <!-- SECTION MARKER — pulled from the monogram: hair squiggle -->
+      <svg class="marker" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 6 Q6 3 9 6 T15 6 T21 6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M3 12 Q6 9 9 12 T15 12 T21 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M3 18 Q6 15 9 18 T15 18 T21 18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
       </svg>
       About
     </h2>
 
     <div class="about-grid">
       <div class="about-text">
-        <p>Hi, I'm Shivani. I draw and make things, and when I do, I like them to be thoughtful and human.</p>
         <p>My practice sits at the intersection of visual storytelling and UX information design. I make sense of the world through comics, data-viz and sketchnoting.</p>
         <p>I've worked as a data communications person for a think tank in the climate space, and before that as a designer at Revisual Labs and in user research.</p>
         <p>I volunteer with VizChitra, India's first data visualisation conference and community. That one is purely for the fun of it.</p>
