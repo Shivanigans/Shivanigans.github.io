@@ -47,17 +47,25 @@ function showToast(message) {
   toastTimeout = setTimeout(() => cookieToast.classList.remove("visible"), 2200);
 }
 
+function takeCookie(cookie) {
+  if (cookie.classList.contains("taken")) return;
+  cookie.classList.add("taken");
+  showToast(cookieMessages[Math.floor(Math.random() * cookieMessages.length)]);
+
+  const remaining = jarCookies.querySelectorAll(".cookie:not(.taken)").length;
+  if (remaining === 0) {
+    cookieHint.textContent = "The jar's empty — thanks for visiting!";
+    jarRefill.hidden = false;
+  }
+}
+
 if (jarCookies) {
   jarCookies.querySelectorAll(".cookie").forEach((cookie) => {
-    cookie.addEventListener("click", () => {
-      if (cookie.classList.contains("taken")) return;
-      cookie.classList.add("taken");
-      showToast(cookieMessages[Math.floor(Math.random() * cookieMessages.length)]);
-
-      const remaining = jarCookies.querySelectorAll(".cookie:not(.taken)").length;
-      if (remaining === 0) {
-        cookieHint.textContent = "jar's empty — thanks for visiting!";
-        jarRefill.hidden = false;
+    cookie.addEventListener("click", () => takeCookie(cookie));
+    cookie.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        takeCookie(cookie);
       }
     });
   });
@@ -67,6 +75,6 @@ if (jarRefill) {
   jarRefill.addEventListener("click", () => {
     jarCookies.querySelectorAll(".cookie").forEach((cookie) => cookie.classList.remove("taken"));
     jarRefill.hidden = true;
-    cookieHint.textContent = "psst — take a cookie 🍪 (no data collected, promise)";
+    cookieHint.innerHTML = "Psst — take a cookie 🍪<br>(no data collected, pinkie promise)";
   });
 }

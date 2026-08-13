@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shivani | Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -172,24 +175,62 @@
 
 <footer class="footer">
   <div class="container footer-inner">
-    <div class="cookie-jar-wrap">
-      <p class="cookie-jar-hint" id="cookieHint">psst — take a cookie 🍪 (no data collected, promise)</p>
+    <div class="cookie-jar-section">
+      <div class="cookie-jar-note">
+        <p class="cookie-jar-hint" id="cookieHint">Psst — take a cookie 🍪<br>(no data collected, pinkie promise)</p>
+        <svg class="cookie-jar-arrow" width="54" height="70" viewBox="0 0 54 70" fill="none" aria-hidden="true">
+          <path d="M4 4C4 30 10 52 46 62" stroke="#b9bac6" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 7"/>
+          <path d="M34 58L47 63.5L41.5 50" stroke="#b9bac6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
       <div class="cookie-jar" id="cookieJar">
-        <div class="jar-lid">
-          <span class="jar-lid-knob"></span>
-        </div>
-        <div class="jar-body">
-          <span class="jar-shine"></span>
-          <div class="cookies" id="jarCookies">
-            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
-            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
-            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
-            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
-            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
-          </div>
-        </div>
+        <svg class="cookie-jar-svg" viewBox="0 0 136 220" role="img" aria-label="A jar of cookies">
+          <path class="jar-body" d="M18,48 L117,48 Q125,48 125,56 L125,182 Q125,214 93,214 L42,214 Q10,214 10,182 L10,56 Q10,48 18,48 Z"/>
+          <rect class="jar-lid-collar" x="6" y="34" width="123" height="20" rx="9"/>
+          <rect class="jar-lid-knob" x="40" y="14" width="55" height="24" rx="12"/>
+
+          <g id="jarCookies">
+            <g class="cookie" data-cookie tabindex="0" role="button" aria-label="Take a cookie" transform="translate(46,97) rotate(-15) scale(1.05)">
+              <path class="cookie-body" d="M-15,-3 C-16,-11 -9,-16 -1,-16 C8,-17 16,-10 15,-1 C17,8 9,16 0,15 C-9,17 -16,8 -15,-3 Z"/>
+              <circle class="cookie-chip" cx="-5" cy="-4" r="2"/>
+              <circle class="cookie-chip" cx="4" cy="-6" r="1.8"/>
+              <circle class="cookie-chip" cx="6" cy="3" r="2"/>
+              <circle class="cookie-chip" cx="-6" cy="5" r="1.8"/>
+            </g>
+            <g class="cookie" data-cookie tabindex="0" role="button" aria-label="Take a cookie" transform="translate(86,89) rotate(12) scale(0.95)">
+              <path class="cookie-body" d="M-15,-3 C-16,-11 -9,-16 -1,-16 C8,-17 16,-10 15,-1 C17,8 9,16 0,15 C-9,17 -16,8 -15,-3 Z"/>
+              <circle class="cookie-chip" cx="-5" cy="-4" r="2"/>
+              <circle class="cookie-chip" cx="4" cy="-6" r="1.8"/>
+              <circle class="cookie-chip" cx="6" cy="3" r="2"/>
+              <circle class="cookie-chip" cx="0" cy="8" r="1.8"/>
+            </g>
+            <g class="cookie" data-cookie tabindex="0" role="button" aria-label="Take a cookie" transform="translate(35,144) rotate(20) scale(1.08)">
+              <path class="cookie-body" d="M-15,-3 C-16,-11 -9,-16 -1,-16 C8,-17 16,-10 15,-1 C17,8 9,16 0,15 C-9,17 -16,8 -15,-3 Z"/>
+              <circle class="cookie-chip" cx="-6" cy="-3" r="2"/>
+              <circle class="cookie-chip" cx="5" cy="-5" r="1.8"/>
+              <circle class="cookie-chip" cx="6" cy="4" r="2"/>
+              <circle class="cookie-chip" cx="-5" cy="6" r="1.8"/>
+            </g>
+            <g class="cookie" data-cookie tabindex="0" role="button" aria-label="Take a cookie" transform="translate(96,150) rotate(-10) scale(1.02)">
+              <path class="cookie-body" d="M-15,-3 C-16,-11 -9,-16 -1,-16 C8,-17 16,-10 15,-1 C17,8 9,16 0,15 C-9,17 -16,8 -15,-3 Z"/>
+              <circle class="cookie-chip" cx="-5" cy="-4" r="2"/>
+              <circle class="cookie-chip" cx="4" cy="-6" r="1.8"/>
+              <circle class="cookie-chip" cx="6" cy="3" r="2"/>
+              <circle class="cookie-chip" cx="-6" cy="5" r="1.8"/>
+            </g>
+            <g class="cookie" data-cookie tabindex="0" role="button" aria-label="Take a cookie" transform="translate(65,172) rotate(6) scale(1.12)">
+              <path class="cookie-body" d="M-15,-3 C-16,-11 -9,-16 -1,-16 C8,-17 16,-10 15,-1 C17,8 9,16 0,15 C-9,17 -16,8 -15,-3 Z"/>
+              <circle class="cookie-chip" cx="-6" cy="-4" r="2"/>
+              <circle class="cookie-chip" cx="5" cy="-6" r="1.8"/>
+              <circle class="cookie-chip" cx="6" cy="4" r="2"/>
+              <circle class="cookie-chip" cx="-4" cy="7" r="1.8"/>
+            </g>
+          </g>
+        </svg>
         <button class="jar-refill" id="jarRefill" type="button" hidden>refill the jar</button>
       </div>
+
       <div class="cookie-toast" id="cookieToast" role="status" aria-live="polite"></div>
     </div>
     <p>&copy; <span id="year"></span> Shivani. All rights reserved.</p>

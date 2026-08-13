@@ -391,117 +391,104 @@ img {
 }
 
 /* Cookie jar */
-.cookie-jar-wrap {
+.cookie-jar-section {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 8px;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.cookie-jar-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  padding-bottom: 42px;
 }
 
 .cookie-jar-hint {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-bottom: 10px;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--color-text);
+  text-align: right;
+  max-width: 220px;
+}
+
+.cookie-jar-arrow {
+  flex-shrink: 0;
+  margin-top: 6px;
 }
 
 .cookie-jar {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 150px;
+  width: 130px;
 }
 
-.jar-lid {
-  position: relative;
-  width: 108px;
-  height: 20px;
-  background: linear-gradient(180deg, var(--color-primary-dark), var(--color-primary));
-  border-radius: 10px;
-  z-index: 2;
-  box-shadow: 0 3px 6px rgba(20, 20, 43, 0.15);
-  transition: transform var(--transition);
-  cursor: pointer;
-}
-
-.jar-lid-knob {
-  position: absolute;
-  top: -9px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 26px;
-  height: 12px;
-  background: var(--color-primary-dark);
-  border-radius: 6px;
-}
-
-.cookie-jar:hover .jar-lid {
-  transform: translateY(-4px) rotate(-3deg);
+.cookie-jar-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
 }
 
 .jar-body {
-  position: relative;
-  width: 130px;
-  height: 120px;
-  margin-top: -6px;
-  border-radius: 0 0 22px 22px;
-  background: linear-gradient(180deg, rgba(79, 70, 229, 0.08), rgba(20, 184, 166, 0.1));
-  border: 2px solid var(--color-border);
-  border-top: none;
-  box-shadow: var(--shadow), inset 0 -6px 14px rgba(20, 20, 43, 0.05);
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 10px;
+  fill: #f6d94a;
+  stroke: #1a1a1a;
+  stroke-width: 3;
+  stroke-linejoin: round;
 }
 
-.jar-shine {
-  position: absolute;
-  top: 10px;
-  left: 14px;
-  width: 14px;
-  height: 70%;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 10px;
-  transform: skewX(-8deg);
-  pointer-events: none;
+.jar-lid-collar {
+  fill: #e0187a;
+  stroke: #1a1a1a;
+  stroke-width: 3;
+  stroke-linejoin: round;
 }
 
-.cookies {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-end;
-  max-width: 110px;
+.jar-lid-knob {
+  fill: #f5189a;
+  stroke: #1a1a1a;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  transition: transform 0.25s ease;
+  transform-origin: 67px 26px;
+}
+
+.cookie-jar:hover .jar-lid-knob {
+  transform: translateY(-3px) rotate(-4deg);
+}
+
+.cookie-body {
+  fill: #d2995c;
+  stroke: #1a1a1a;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.cookie-chip {
+  fill: #5c3a1e;
 }
 
 .cookie {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: none;
   cursor: pointer;
-  padding: 0;
-  background:
-    radial-gradient(circle at 30% 30%, #7a4a25 3px, transparent 3.5px),
-    radial-gradient(circle at 65% 25%, #7a4a25 2.5px, transparent 3px),
-    radial-gradient(circle at 45% 55%, #7a4a25 3px, transparent 3.5px),
-    radial-gradient(circle at 75% 65%, #7a4a25 2.5px, transparent 3px),
-    radial-gradient(circle at 25% 70%, #7a4a25 2px, transparent 2.5px),
-    #d9a066;
-  box-shadow: inset 0 -3px 4px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s ease;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .cookie:hover {
-  transform: translateY(-3px) scale(1.08);
+  transform: scale(1.12) translateY(-2px);
 }
 
 .cookie:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: none;
+}
+
+.cookie:focus-visible .cookie-body {
+  stroke: var(--color-primary);
+  stroke-width: 3.5;
 }
 
 .cookie.taken {
@@ -515,13 +502,18 @@ img {
     opacity: 1;
   }
   100% {
-    transform: translateY(-50px) scale(0.4) rotate(35deg);
+    transform: translateY(-70px) scale(0.4) rotate(50deg);
     opacity: 0;
   }
 }
 
+.jar-refill[hidden] {
+  display: none;
+}
+
 .jar-refill {
-  margin-top: 12px;
+  display: block;
+  margin: 10px auto 0;
   background: none;
   border: 1px solid var(--color-border);
   color: var(--color-primary);
@@ -540,7 +532,7 @@ img {
 
 .cookie-toast {
   min-height: 20px;
-  margin-top: 12px;
+  margin-top: 4px;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-primary);
@@ -552,6 +544,28 @@ img {
 .cookie-toast.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (max-width: 560px) {
+  .cookie-jar-section {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .cookie-jar-note {
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 0;
+  }
+
+  .cookie-jar-hint {
+    text-align: center;
+    max-width: none;
+  }
+
+  .cookie-jar-arrow {
+    display: none;
+  }
 }
 
 /* Back to top */
