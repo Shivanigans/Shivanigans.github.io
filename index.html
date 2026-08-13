@@ -171,7 +171,27 @@
 </main>
 
 <footer class="footer">
-  <div class="container">
+  <div class="container footer-inner">
+    <div class="cookie-jar-wrap">
+      <p class="cookie-jar-hint" id="cookieHint">psst — take a cookie 🍪 (no data collected, promise)</p>
+      <div class="cookie-jar" id="cookieJar">
+        <div class="jar-lid">
+          <span class="jar-lid-knob"></span>
+        </div>
+        <div class="jar-body">
+          <span class="jar-shine"></span>
+          <div class="cookies" id="jarCookies">
+            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
+            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
+            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
+            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
+            <button class="cookie" data-cookie aria-label="Take a cookie"></button>
+          </div>
+        </div>
+        <button class="jar-refill" id="jarRefill" type="button" hidden>refill the jar</button>
+      </div>
+      <div class="cookie-toast" id="cookieToast" role="status" aria-live="polite"></div>
+    </div>
     <p>&copy; <span id="year"></span> Shivani. All rights reserved.</p>
   </div>
 </footer>
