@@ -434,41 +434,45 @@ img {
 }
 
 .jar-body {
-  fill: #f6d94a;
-  stroke: #1a1a1a;
+  fill: #f3dd57;
+  stroke: #f9ea8d;
+  stroke-width: 1.5;
+}
+
+.jar-highlight {
+  fill: none;
+  stroke: #f9ea8d;
   stroke-width: 3;
-  stroke-linejoin: round;
+}
+
+.jar-lid-dome {
+  fill: #ff00b3;
+  stroke: #fd82b8;
+  stroke-width: 1.5;
+  transition: transform 0.25s ease;
+  transform-origin: 69px 26px;
 }
 
 .jar-lid-collar {
-  fill: #e0187a;
-  stroke: #1a1a1a;
-  stroke-width: 3;
-  stroke-linejoin: round;
+  fill: #fd82b8;
+  stroke: #fd82b8;
+  stroke-width: 1.5;
 }
 
-.jar-lid-knob {
-  fill: #f5189a;
-  stroke: #1a1a1a;
-  stroke-width: 3;
-  stroke-linejoin: round;
-  transition: transform 0.25s ease;
-  transform-origin: 67px 26px;
-}
-
-.cookie-jar:hover .jar-lid-knob {
+.cookie-jar:hover .jar-lid-dome {
   transform: translateY(-3px) rotate(-4deg);
 }
 
 .cookie-body {
-  fill: #d2995c;
-  stroke: #1a1a1a;
-  stroke-width: 2.5;
-  stroke-linejoin: round;
+  fill: #dda751;
+  stroke: #dda751;
+  stroke-width: 2;
 }
 
 .cookie-chip {
-  fill: #5c3a1e;
+  fill: #6f510e;
+  stroke: #6f510e;
+  stroke-width: 1;
 }
 
 .cookie {
@@ -482,7 +486,7 @@ img {
   transform: scale(1.12) translateY(-2px);
 }
 
-.cookie:focus-visible {
+.cookie:focus {
   outline: none;
 }
 
