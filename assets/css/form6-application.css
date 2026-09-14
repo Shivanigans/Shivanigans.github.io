@@ -1,0 +1,16 @@
+body { margin: 0; font-family: 'Noto Sans', system-ui, sans-serif; background: #F5F5F5; color: #171717; }
+  *:focus-visible { outline: 2px solid #4A2BC2; outline-offset: 2px; }
+  a { color: #4A2BC2; }
+  a:hover { color: #3A1F9E; }
+  [aria-invalid="true"] { border-color: #B3261E !important; box-shadow: inset 0 0 0 1px #B3261E; }
+  select[aria-invalid] {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' sc-camel-view-box='0 0 24 24' fill='none' stroke='%23404040' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; background-size: 18px 18px;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #4A2BC2; outline-offset: 1px; }
+
+/* hover styles, lifted out of style-hover attributes */
+.hv-1:hover { background: #F3F0FF; border-color: #4A2BC2; }
+.hv-2:hover { color: #4A2BC2; text-decoration: underline; }
+.hv-3:hover { background: #3A1F9E; }

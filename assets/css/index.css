@@ -1,0 +1,13 @@
+body { margin: 0; font-family: 'Noto Sans', system-ui, sans-serif; background: #FAFAFA; color: #171717; -webkit-font-smoothing: antialiased; }
+  *, *::before, *::after { box-sizing: border-box; }
+  a { color: #4A2BC2; }
+  a:hover { color: #3A1FA3; }
+  :focus-visible { outline: 2px solid #4A2BC2; outline-offset: 2px; }
+  summary::-webkit-details-marker { display: none; }
+  details[open] summary svg { transform: rotate(180deg); }
+
+/* hover styles, lifted out of style-hover attributes */
+.hv-1:hover { background: #F3F0FF; border-color: #4A2BC2; }
+.hv-2:hover { color: #4A2BC2; text-decoration: underline; }
+.hv-3:hover { background: #3A1F9E; }
+.hv-4:hover { color: #FFFFFF; text-decoration: underline; }
