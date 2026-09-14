@@ -8,6 +8,17 @@
 <link rel="stylesheet" href="assets/css/ux4g.css">
 <link rel="stylesheet" href="assets/css/fonts-index.css">
 <link rel="stylesheet" href="assets/css/index.css">
+<style>.dc-loading #app { visibility: hidden; }</style>
+<script>
+  // Hold the page back until the first render, otherwise the raw {{ }} bindings
+  // and every x-if branch flash up at once. dc-lite clears this once it has
+  // rendered; the timeout is a failsafe, so a script that fails to load leaves
+  // an unbound page rather than a blank one.
+  document.documentElement.classList.add('dc-loading');
+  setTimeout(function () {
+    document.documentElement.classList.remove('dc-loading');
+  }, 4000);
+</script>
 </head>
 <body>
 <div id="app">

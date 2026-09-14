@@ -60,6 +60,12 @@ Everything `renderVals()` returns is available to the markup:
 `setState` re-runs `renderVals()` and updates only the bindings whose values
 changed, so typing in a field does not lose the caret.
 
+Each page's `<head>` holds the page back with a `dc-loading` class until that
+first render, so the raw `{{ }}` bindings and every `x-if` branch are never shown
+at once. `dc-lite` clears the class when it has rendered, and a four second
+timeout clears it anyway, so a script that fails to load leaves an unbound page
+rather than a blank one.
+
 The full contract — every attribute, and what counts as a valid expression — is
 documented at the top of `assets/js/dc-lite.js`. It is about 250 lines; read it
 before changing how bindings behave.

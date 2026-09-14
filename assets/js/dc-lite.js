@@ -314,6 +314,9 @@
       page.render();
       page.componentDidMount();
       page.render();
+      // The page was hidden until now (see the dc-loading block in the <head>)
+      // so the raw {{ }} bindings and every x-if branch are never shown at once.
+      document.documentElement.classList.remove('dc-loading');
       return page;
     }
   };

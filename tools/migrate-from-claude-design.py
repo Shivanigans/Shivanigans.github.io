@@ -237,7 +237,12 @@ def convert(filename, page):
         if '@layer ux4g-tokens' in block:
             sheets.append(publish(block.encode(), 'assets/css/ux4g.css'))
         elif '@font-face' in block:
-            sheets.append(publish(block.encode(), 'assets/css/fonts-%s.css' % page))
+            # Deliberately not shared between pages: each page links a sheet
+            # named after itself, so editing one cannot surprise another.
+            path = 'assets/css/fonts-%s.css' % page
+            os.makedirs(os.path.join(OUT, 'assets/css'), exist_ok=True)
+            open(os.path.join(OUT, path), 'w').write(block)
+            sheets.append(path)
         else:
             page_css = block
     tpl = re.sub(r'<style>.*?</style>', '', tpl, flags=re.S)
@@ -293,6 +298,17 @@ def convert(filename, page):
 %s
 %s
 <link rel="stylesheet" href="%s">
+<style>.dc-loading #app { visibility: hidden; }</style>
+<script>
+  // Hold the page back until the first render, otherwise the raw {{ }} bindings
+  // and every x-if branch flash up at once. dc-lite clears this once it has
+  // rendered; the timeout is a failsafe, so a script that fails to load leaves
+  // an unbound page rather than a blank one.
+  document.documentElement.classList.add('dc-loading');
+  setTimeout(function () {
+    document.documentElement.classList.remove('dc-loading');
+  }, 4000);
+</script>
 </head>
 <body>
 <div id="app">%s</div>

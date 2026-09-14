@@ -5,8 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Form 6 application</title>
 
-<link rel="stylesheet" href="assets/css/fonts-login.css">
+<link rel="stylesheet" href="assets/css/fonts-form6-application.css">
 <link rel="stylesheet" href="assets/css/form6-application.css">
+<style>.dc-loading #app { visibility: hidden; }</style>
+<script>
+  // Hold the page back until the first render, otherwise the raw {{ }} bindings
+  // and every x-if branch flash up at once. dc-lite clears this once it has
+  // rendered; the timeout is a failsafe, so a script that fails to load leaves
+  // an unbound page rather than a blank one.
+  document.documentElement.classList.add('dc-loading');
+  setTimeout(function () {
+    document.documentElement.classList.remove('dc-loading');
+  }, 4000);
+</script>
 </head>
 <body>
 <div id="app">
