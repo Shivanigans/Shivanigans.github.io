@@ -377,12 +377,25 @@ OVERPASS_SERVERS = (
 )
 
 
+# What to ask OpenStreetMap for. Wilderness is the land cover a hill walk
+# passes through - woods, scrub, grassland, water - which is what fills the
+# stretches where nobody has mapped a single building.
+WILD_NATURAL = "wood|scrub|heath|grassland|water|wetland|bare_rock|scree"
+WILD_LANDUSE = "forest|meadow|grass|orchard|farmland"
+
+
 def overpass_query(bbox):
     south, west, north, east = bbox
     box = f"{south:.5f},{west:.5f},{north:.5f},{east:.5f}"
-    return (f"[out:json][timeout:180];\n(\n"
+    # "nwr" means node, way and relation. Big forests are usually mapped
+    # as relations, so asking only for ways misses them entirely.
+    return (f"[out:json][timeout:240];\n(\n"
             f'  way["building"]({box});\n'
             f'  way["highway"]({box});\n'
+            f'  nwr["natural"~"^({WILD_NATURAL})$"]({box});\n'
+            f'  nwr["landuse"~"^({WILD_LANDUSE})$"]({box});\n'
+            f'  nwr["leisure"="nature_reserve"]({box});\n'
+            f'  nwr["boundary"="protected_area"]({box});\n'
             f");\nout geom;")
 
 
@@ -399,6 +412,24 @@ def overpass_links(bbox):
     return direct, "https://overpass-turbo.eu/?Q=" + quote(query) + "&R"
 
 
+def is_wild(tags):
+    """Is this patch of ground wilderness rather than something built?"""
+    return (tags.get("natural") in WILD_NATURAL.split("|")
+            or tags.get("landuse") in WILD_LANDUSE.split("|")
+            or tags.get("leisure") == "nature_reserve"
+            or tags.get("boundary") == "protected_area")
+
+
+def polygon_area(shape):
+    """Area in square metres, by the shoelace formula."""
+    total = 0.0
+    for i in range(len(shape)):
+        x1, y1 = shape[i]
+        x2, y2 = shape[(i + 1) % len(shape)]
+        total += x1 * y2 - x2 * y1
+    return abs(total) / 2
+
+
 def read_map(path, mean_lat):
     """Read buildings and roads out of a GeoJSON file, in metres.
 
@@ -408,7 +439,7 @@ def read_map(path, mean_lat):
     with open(path) as handle:
         data = json.load(handle)
 
-    buildings, roads = [], []
+    buildings, roads, wild = [], [], []
 
     # Raw Overpass JSON, as the API hands it back with "out geom".
     if "elements" in data:
@@ -420,10 +451,13 @@ def read_map(path, mean_lat):
             tags = element.get("tags") or {}
             if tags.get("building"):
                 buildings.append(shape)
+            elif is_wild(tags):
+                wild.append(shape)
             elif tags.get("highway"):
                 roads.append(shape)
         return ([b for b in buildings if len(b) >= 3],
-                [r for r in roads if len(r) >= 2])
+                [r for r in roads if len(r) >= 2],
+                [w for w in wild if len(w) >= 3])
 
     for feature in data.get("features", []):
         geometry = feature.get("geometry") or {}
@@ -438,15 +472,19 @@ def read_map(path, mean_lat):
             return [project_point(point[1], point[0], mean_lat)
                     for point in ring if len(point) >= 2]
 
+        into = wild if is_wild(props) else buildings
+
         if kind == "Polygon":
-            buildings.append(shape(coords[0]))
+            into.append(shape(coords[0]))
         elif kind == "MultiPolygon":
             for part in coords:
-                buildings.append(shape(part[0]))
+                into.append(shape(part[0]))
         elif kind == "LineString":
             line = shape(coords)
-            # A closed way tagged as a building comes through as a line.
-            if props.get("building") and len(line) > 3:
+            # A closed way comes through as a line, not a polygon.
+            if is_wild(props) and len(line) > 3:
+                wild.append(line)
+            elif props.get("building") and len(line) > 3:
                 buildings.append(line)
             elif props.get("highway"):
                 roads.append(line)
@@ -454,7 +492,9 @@ def read_map(path, mean_lat):
             for part in coords:
                 roads.append(shape(part))
 
-    return [b for b in buildings if len(b) >= 3], [r for r in roads if len(r) >= 2]
+    return ([b for b in buildings if len(b) >= 3],
+            [r for r in roads if len(r) >= 2],
+            [w for w in wild if len(w) >= 3])
 
 
 def touches_frame(shape, bounds, slack):
@@ -537,12 +577,13 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
 
     bounds = (min_x, min_y, max_x, max_y)
     slack = max(width_m, height_m) * 0.25
-    buildings, roads = [], []
+    buildings, roads, wild = [], [], []
     map_path = map_file_for(gpx_path)
     if os.path.exists(map_path):
-        buildings, roads = read_map(map_path, mean_lat)
+        buildings, roads, wild = read_map(map_path, mean_lat)
         buildings = [b for b in buildings if touches_frame(b, bounds, slack)]
         roads = [r for r in roads if touches_frame(r, bounds, slack)]
+        wild = [w for w in wild if touches_frame(w, bounds, slack)]
 
     add('  <g id="blocks" clip-path="url(#frame)">')
     if buildings:
@@ -678,8 +719,11 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     east = math.degrees((max_x + pad) / (EARTH_R * squash))
 
     return "\n".join(parts), {
-        "map": map_path if buildings or roads else None,
+        "map": map_path if buildings or roads or wild else None,
         "buildings": len(buildings), "roads": len(roads),
+        "wild": len(wild),
+        "wild_share": (sum(polygon_area(w) for w in wild) /
+                       (width_m * height_m) if wild and width_m and height_m else 0.0),
         "bbox": (south, west, north, east),
         "name": name, "distance": distance, "ascent": ascent,
         "footprint": (width_m, height_m), "plate": (plate_w, plate_h),
@@ -740,6 +784,12 @@ def main(paths):
         if stats["map"]:
             print(f"  map data: {stats['buildings']} buildings, "
                   f"{stats['roads']} roads from {os.path.basename(stats['map'])}")
+            if stats["wild"]:
+                print(f"  wilderness: {stats['wild']} areas, covering roughly "
+                      f"{stats['wild_share']*100:.0f}% of the frame")
+            else:
+                print(f"  wilderness: none in this file - the query may not "
+                      f"have asked for it, or OSM has none mapped here")
         else:
             direct, turbo = overpass_links(stats["bbox"])
             want = os.path.basename(map_file_for(path))
