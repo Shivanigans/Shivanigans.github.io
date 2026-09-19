@@ -356,23 +356,47 @@ def make_blocks(runs, span, seed):
 
 
 def map_file_for(gpx_path):
-    """Where the map data for a walk lives: same folder, same name, .geojson"""
-    return os.path.splitext(gpx_path)[0] + ".geojson"
+    """Where the map data for a walk lives: same folder, same name.
 
-
-def overpass_link(bbox):
-    """A ready-made overpass-turbo link for this walk's patch of the world.
-
-    Open it, let it run, then Export -> GeoJSON and save the file next to
-    the GPX with the same name. No coding needed.
+    Either extension works, and either format - overpass-turbo's GeoJSON
+    export, or the raw JSON the Overpass API returns in a browser.
     """
+    stem = os.path.splitext(gpx_path)[0]
+    for extension in (".geojson", ".json"):
+        if os.path.exists(stem + extension):
+            return stem + extension
+    return stem + ".geojson"
+
+
+# Overpass has several public servers. The busiest one refuses work at
+# peak times, so offer more than one.
+OVERPASS_SERVERS = (
+    ("kumi", "https://overpass.kumi.systems/api/interpreter"),
+    ("main", "https://overpass-api.de/api/interpreter"),
+    ("france", "https://overpass.openstreetmap.fr/api/interpreter"),
+)
+
+
+def overpass_query(bbox):
     south, west, north, east = bbox
     box = f"{south:.5f},{west:.5f},{north:.5f},{east:.5f}"
-    query = (f"[out:json][timeout:90];\n(\n"
-             f'  way["building"]({box});\n'
-             f'  way["highway"]({box});\n'
-             f");\nout geom;")
-    return "https://overpass-turbo.eu/?Q=" + quote(query) + "&R"
+    return (f"[out:json][timeout:180];\n(\n"
+            f'  way["building"]({box});\n'
+            f'  way["highway"]({box});\n'
+            f");\nout geom;")
+
+
+def overpass_links(bbox):
+    """Ways to fetch this walk's patch of the world.
+
+    The direct links return raw JSON straight into the browser - save that
+    and the script reads it. The turbo link is the fallback if you would
+    rather see the map before exporting.
+    """
+    query = overpass_query(bbox)
+    direct = [(name, url + "?data=" + quote(query))
+              for name, url in OVERPASS_SERVERS]
+    return direct, "https://overpass-turbo.eu/?Q=" + quote(query) + "&R"
 
 
 def read_map(path, mean_lat):
@@ -385,6 +409,22 @@ def read_map(path, mean_lat):
         data = json.load(handle)
 
     buildings, roads = [], []
+
+    # Raw Overpass JSON, as the API hands it back with "out geom".
+    if "elements" in data:
+        for element in data["elements"]:
+            shape = [project_point(node["lat"], node["lon"], mean_lat)
+                     for node in element.get("geometry") or []]
+            if len(shape) < 2:
+                continue
+            tags = element.get("tags") or {}
+            if tags.get("building"):
+                buildings.append(shape)
+            elif tags.get("highway"):
+                roads.append(shape)
+        return ([b for b in buildings if len(b) >= 3],
+                [r for r in roads if len(r) >= 2])
+
     for feature in data.get("features", []):
         geometry = feature.get("geometry") or {}
         props = feature.get("properties") or {}
@@ -695,11 +735,15 @@ def main(paths):
             print(f"  map data: {stats['buildings']} buildings, "
                   f"{stats['roads']} roads from {os.path.basename(stats['map'])}")
         else:
-            print(f"  no map data - using abstract blocks. To use real "
-                  f"geography, open this, let it run,")
-            print(f"  then Export -> GeoJSON and save it as "
-                  f"{os.path.basename(map_file_for(path))} next to the GPX:")
-            print(f"    {overpass_link(stats['bbox'])}")
+            direct, turbo = overpass_links(stats["bbox"])
+            want = os.path.basename(map_file_for(path))
+            print(f"  no map data - using abstract blocks.")
+            print(f"  For real geography, open one of these, save what comes "
+                  f"back as {want}, next to the GPX.")
+            print(f"  If a server is busy, try the next one:")
+            for label, url in direct:
+                print(f"    [{label}] {url}")
+            print(f"  Or see it on a map first (Export -> GeoJSON): {turbo}")
         if stats["gaps"]:
             told = ", ".join(f"{n} {kind}" for kind, n in sorted(stats["gaps"].items()))
             print(f"  {stats['stretches']} stretches, recording gaps: {told}")
