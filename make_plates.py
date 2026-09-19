@@ -21,6 +21,7 @@ import math
 import os
 import random
 import sys
+from urllib.parse import quote
 
 # ---------------------------------------------------------------------------
 # SETTINGS
@@ -97,13 +98,25 @@ def read_gpx(path):
     return name, points
 
 
-def to_metres(points):
-    """Latitude/longitude to flat x/y metres. x east, y north."""
-    mean_lat = sum(p[0] for p in points) / len(points)
+def reference_latitude(points):
+    """The latitude everything on this plate is projected against.
+
+    The walk and its map data must use the same one, or the buildings will
+    not sit where the walk actually passed them.
+    """
+    return sum(p[0] for p in points) / len(points)
+
+
+def project_point(lat, lon, mean_lat):
     squash = math.cos(math.radians(mean_lat))
-    return [(math.radians(lon) * EARTH_R * squash,
-             math.radians(lat) * EARTH_R,
-             stamp, ele)
+    return (math.radians(lon) * EARTH_R * squash, math.radians(lat) * EARTH_R)
+
+
+def to_metres(points, mean_lat=None):
+    """Latitude/longitude to flat x/y metres. x east, y north."""
+    if mean_lat is None:
+        mean_lat = reference_latitude(points)
+    return [project_point(lat, lon, mean_lat) + (stamp, ele)
             for lat, lon, stamp, ele in points]
 
 
@@ -342,13 +355,83 @@ def make_blocks(runs, span, seed):
     return out
 
 
+def map_file_for(gpx_path):
+    """Where the map data for a walk lives: same folder, same name, .geojson"""
+    return os.path.splitext(gpx_path)[0] + ".geojson"
+
+
+def overpass_link(bbox):
+    """A ready-made overpass-turbo link for this walk's patch of the world.
+
+    Open it, let it run, then Export -> GeoJSON and save the file next to
+    the GPX with the same name. No coding needed.
+    """
+    south, west, north, east = bbox
+    box = f"{south:.5f},{west:.5f},{north:.5f},{east:.5f}"
+    query = (f"[out:json][timeout:90];\n(\n"
+             f'  way["building"]({box});\n'
+             f'  way["highway"]({box});\n'
+             f");\nout geom;")
+    return "https://overpass-turbo.eu/?Q=" + quote(query) + "&R"
+
+
+def read_map(path, mean_lat):
+    """Read buildings and roads out of a GeoJSON file, in metres.
+
+    Accepts what overpass-turbo exports. Anything it does not recognise is
+    skipped rather than crashing the plate.
+    """
+    with open(path) as handle:
+        data = json.load(handle)
+
+    buildings, roads = [], []
+    for feature in data.get("features", []):
+        geometry = feature.get("geometry") or {}
+        props = feature.get("properties") or {}
+        kind = geometry.get("type")
+        coords = geometry.get("coordinates")
+        if not coords:
+            continue
+
+        # GeoJSON is [longitude, latitude], the other way round to a GPX.
+        def shape(ring):
+            return [project_point(point[1], point[0], mean_lat)
+                    for point in ring if len(point) >= 2]
+
+        if kind == "Polygon":
+            buildings.append(shape(coords[0]))
+        elif kind == "MultiPolygon":
+            for part in coords:
+                buildings.append(shape(part[0]))
+        elif kind == "LineString":
+            line = shape(coords)
+            # A closed way tagged as a building comes through as a line.
+            if props.get("building") and len(line) > 3:
+                buildings.append(line)
+            elif props.get("highway"):
+                roads.append(line)
+        elif kind == "MultiLineString":
+            for part in coords:
+                roads.append(shape(part))
+
+    return [b for b in buildings if len(b) >= 3], [r for r in roads if len(r) >= 2]
+
+
+def touches_frame(shape, bounds, slack):
+    """Is any of this shape near enough the plate to be worth drawing?"""
+    min_x, min_y, max_x, max_y = bounds
+    return any(min_x - slack <= x <= max_x + slack and
+               min_y - slack <= y <= max_y + slack for x, y in shape)
+
+
 def escape(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     _, raw = read_gpx(gpx_path)
-    track, dropped = drop_spikes(to_metres(raw))
+    mean_lat = reference_latitude(raw)
+    track, dropped = drop_spikes(to_metres(raw, mean_lat))
     runs, gaps = split_on_gaps(track)
 
     # Pauses and reversals read from the cleaned but unsmoothed track;
@@ -406,14 +489,43 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     add(f'    <rect x="0" y="0" width="{plate_w:.2f}" height="{plate_h:.2f}" fill="{GROUND}"/>')
     add('  </g>')
 
+    bounds = (min_x, min_y, max_x, max_y)
+    slack = max(width_m, height_m) * 0.25
+    buildings, roads = [], []
+    map_path = map_file_for(gpx_path)
+    if os.path.exists(map_path):
+        buildings, roads = read_map(map_path, mean_lat)
+        buildings = [b for b in buildings if touches_frame(b, bounds, slack)]
+        roads = [r for r in roads if touches_frame(r, bounds, slack)]
+
     add('  <g id="blocks">')
-    for block in make_blocks(drawn, max(width_m, height_m), name):
-        bx, by = place(block["x"], block["y"])
-        bw, bh = block["w"] / metres_per_pixel, block["h"] / metres_per_pixel
-        add(f'    <rect x="{bx - bw/2:.2f}" y="{by - bh/2:.2f}" '
-            f'width="{bw:.2f}" height="{bh:.2f}" fill="{BLOCKS}" '
-            f'opacity="{block["fade"]:.2f}" '
-            f'transform="rotate({block["angle"]:.1f} {bx:.2f} {by:.2f})"/>')
+    if buildings:
+        # Real building footprints from the map data, in their real places.
+        dice = random.Random(name)
+        for shape in buildings:
+            points = " ".join(f"{x:.2f},{y:.2f}"
+                              for x, y in (place(px, py) for px, py in shape))
+            add(f'    <polygon points="{points}" fill="{BLOCKS}" '
+                f'opacity="{dice.uniform(0.38, 0.78):.2f}"/>')
+    else:
+        # No map data for this walk, so fall back to abstract ground.
+        for block in make_blocks(drawn, max(width_m, height_m), name):
+            bx, by = place(block["x"], block["y"])
+            bw, bh = block["w"] / metres_per_pixel, block["h"] / metres_per_pixel
+            add(f'    <rect x="{bx - bw/2:.2f}" y="{by - bh/2:.2f}" '
+                f'width="{bw:.2f}" height="{bh:.2f}" fill="{BLOCKS}" '
+                f'opacity="{block["fade"]:.2f}" '
+                f'transform="rotate({block["angle"]:.1f} {bx:.2f} {by:.2f})"/>')
+    add('  </g>')
+
+    # Roads as their own layer, faint, so you can switch them off in Figma.
+    add('  <g id="roads">')
+    for shape in roads:
+        points = " ".join(f"{x:.2f},{y:.2f}"
+                          for x, y in (place(px, py) for px, py in shape))
+        add(f'    <polyline points="{points}" fill="none" stroke="{BLOCKS}" '
+            f'stroke-width="{stroke*0.5:.2f}" stroke-linecap="round" '
+            f'stroke-linejoin="round" opacity="0.7"/>')
     add('  </g>')
 
     add('  <g id="pace" display="none">')
@@ -510,7 +622,19 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     for gap in gaps:
         kinds[gap["kind"]] = kinds.get(gap["kind"], 0) + 1
 
+    # The bounding box to download map data for, padded a little so the
+    # geography reaches the frame edges rather than stopping at the route.
+    pad = max(width_m, height_m) * 0.12
+    south = math.degrees((min_y - pad) / EARTH_R)
+    north = math.degrees((max_y + pad) / EARTH_R)
+    squash = math.cos(math.radians(mean_lat))
+    west = math.degrees((min_x - pad) / (EARTH_R * squash))
+    east = math.degrees((max_x + pad) / (EARTH_R * squash))
+
     return "\n".join(parts), {
+        "map": map_path if buildings or roads else None,
+        "buildings": len(buildings), "roads": len(roads),
+        "bbox": (south, west, north, east),
         "name": name, "distance": distance, "ascent": ascent,
         "footprint": (width_m, height_m), "plate": (plate_w, plate_h),
         "pauses": len(pauses), "reversals": len(reversals),
@@ -567,6 +691,15 @@ def main(paths):
               f"({'portrait' if h > w else 'landscape'})")
         print(f"  {stats['pauses']} pauses -> {stats['pauses']} blocks, "
               f"{stats['reversals']} reversals, {stats['dropped']} spikes dropped")
+        if stats["map"]:
+            print(f"  map data: {stats['buildings']} buildings, "
+                  f"{stats['roads']} roads from {os.path.basename(stats['map'])}")
+        else:
+            print(f"  no map data - using abstract blocks. To use real "
+                  f"geography, open this, let it run,")
+            print(f"  then Export -> GeoJSON and save it as "
+                  f"{os.path.basename(map_file_for(path))} next to the GPX:")
+            print(f"    {overpass_link(stats['bbox'])}")
         if stats["gaps"]:
             told = ", ".join(f"{n} {kind}" for kind, n in sorted(stats["gaps"].items()))
             print(f"  {stats['stretches']} stretches, recording gaps: {told}")

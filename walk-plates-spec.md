@@ -27,9 +27,10 @@ itself encodes distance. Short walks print small and that is the intent.
 **No minimum plate size.** A 400 m walk prints at roughly 352 x 459 px beside
 naddi's 1528 x 1347. The size difference is part of what the gallery says.
 
-**Blocks** — decoration, not data. They follow the route loosely so the plate
-has some geography behind it, and they fade back so the red line stays the
-thing you read. Nothing about their size means anything.
+**Blocks** — real building footprints from OpenStreetMap where map data is
+supplied, otherwise abstract shapes following the route. Either way they are
+ground, not data: nothing about their size means anything. Roads come through
+as their own layer so they can be switched off.
 
 They were originally one-per-pause sized by duration, but that could not be
 read: a random size jitter reversed the ordering within a plate (a 2.3 minute
@@ -107,6 +108,19 @@ ascent.
 
 Distance was given as 12.26 km, which counted the cab ride and the rests as
 route. 10.74 km is what was walked.
+
+## Map data
+
+Each walk can have real geography behind it. The script looks for a
+`.geojson` file beside the GPX with the same name; if it is not there, it
+prints a ready-made overpass-turbo link for that walk's bounding box.
+
+Open the link, let the query run, then Export → GeoJSON and save the file
+next to the GPX. No coding, and no network needed on later runs. Buildings
+are drawn into the `blocks` layer, roads into `roads`.
+
+The walk and its map data are projected against the same reference latitude,
+so buildings sit where the walk actually passed them.
 
 ## The script
 

@@ -20,6 +20,8 @@
     <rect x="1118.94" y="310.36" width="154.37" height="278.58" fill="#f3b568" opacity="0.43" transform="rotate(4.4 1196.13 449.65)"/>
     <rect x="1199.28" y="493.93" width="190.33" height="218.90" fill="#f3b568" opacity="0.33" transform="rotate(11.4 1294.44 603.38)"/>
   </g>
+  <g id="roads">
+  </g>
   <g id="pace" display="none">
     <line x1="1408.60" y1="401.18" x2="1407.24" y2="400.56" stroke="#e13a3d" stroke-width="4.32" stroke-linecap="round"/>
     <line x1="1407.24" y1="400.56" x2="1408.17" y2="401.39" stroke="#e13a3d" stroke-width="4.26" stroke-linecap="round"/>

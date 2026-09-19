@@ -15,6 +15,8 @@
     <rect x="307.00" y="300.83" width="222.25" height="202.30" fill="#f3b568" opacity="0.42" transform="rotate(-6.2 418.13 401.98)"/>
     <rect x="488.21" y="93.29" width="119.55" height="132.85" fill="#f3b568" opacity="0.44" transform="rotate(-19.7 547.99 159.72)"/>
   </g>
+  <g id="roads">
+  </g>
   <g id="pace" display="none">
     <line x1="219.93" y1="758.71" x2="221.31" y2="756.85" stroke="#e13a3d" stroke-width="5.95" stroke-linecap="round"/>
     <line x1="221.31" y1="756.85" x2="223.04" y2="755.03" stroke="#e13a3d" stroke-width="4.81" stroke-linecap="round"/>
