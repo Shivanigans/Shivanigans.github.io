@@ -37,10 +37,22 @@ climbing and standing still are indistinguishable by speed.
 **Reversals** — all kept, none filtered. Switchbacks are part of what a steep
 walk is.
 
-**Recording gaps** — not bridged. Where Strava stopped recording for more than
-45 seconds the path stops and restarts, because a bridged gap draws a straight
-line that reads as walked route and was not. Naddi breaks into 7 stretches,
-mcleodganj into 2.
+**Recording gaps** — Strava switching off to save battery. Not bridged, and
+sorted by how far the walk got whilst it was off:
+
+| what happened | test | drawn as |
+|---|---|---|
+| stood still | moved under 100 m | a pause, so it gets a block |
+| walked, unrecorded | under 3 km/h | a dotted line |
+| vehicle | 3 km/h or more | not drawn, not counted |
+
+Naddi has 2 rests, 3 unrecorded walking stretches and 1 cab ride.
+
+**Elevation** — drawn as a climb profile in the caption band, not written.
+Across is distance walked, up is height. Distance walked is labelled beneath.
+
+**Typeface** — JetBrains Mono, with a monospace fallback. It must be
+installed locally for Figma to render it.
 
 **Pause scale** — shared across every plate, set by the longest pause
 anywhere, so a circle of a given size means the same duration on any plate and
@@ -57,23 +69,33 @@ Projection is local equirectangular; GPS spikes above 6 m/s dropped.
 |---|---|---|
 | Strava type | walking | hiking |
 | points | 5,380 (3 spikes) | 15,389 (23 spikes) |
-| distance | 4.17 km | 12.10 km |
+| distance walked | 4.20 km | 10.74 km |
 | duration | 130 min | 427 min |
 | footprint | 844 x 1537 m | 2331 x 1011 m |
 | orientation | portrait (0.55) | landscape (2.31) |
-| elevation gain | 177 m | 1,494 m |
+| elevation range | 1617-1768 m | 1767-1968 m |
+| elevation gain | 177 m | 416 m |
 | moving pace | 21.4 min/km | 23.4 min/km |
-| pauses (10 m / 2 min) | 5 | 16 |
+| pauses | 6 | 18 |
 | reversals | 23 | 74 |
-| plate size | 613 x 1188 px | 1530 x 1016 px |
+| plate size | 613 x 1300 px | 1530 x 1158 px |
 | recording gaps | 1 | 6 |
+| stretches drawn | 2 | 7 |
 
 Naddi sets the ceiling for the shared scale, at 1.727 m per pixel.
 
-An earlier note here gave naddi's footprint as 3140 x 2370 m. That was
-measured before the GPS spike filter ran. Four bad fixes at 09:23 fly up to
-2.7 km from the walk, inflating the box; the true footprint is 2331 x 1011 m,
-which a percentile check agrees with independently.
+Three earlier figures here were measured before the GPS spike filter ran and
+were wrong. Naddi's footprint was given as 3140 x 2370 m; four bad fixes at
+09:23 lie up to 2.7 km off the route and inflated the box. The true footprint
+is 2331 x 1011 m, which a percentile check agrees with.
+
+Naddi's elevation was given as 1767-2921 m with 1494 m of climb. The 2921 m
+readings are those same bad fixes. The walk stays between 1767 and 1968 m and
+climbs 416 m, so it is rolling ground above McLeod Ganj rather than a major
+ascent.
+
+Distance was given as 12.26 km, which counted the cab ride and the rests as
+route. 10.74 km is what was walked.
 
 ## The script
 
@@ -92,6 +114,13 @@ ceiling, rather than fixed, because plates now range from a few hundred pixels
 to over 1500. The caption band is measured from its actual contents so the
 legend cannot be clipped off a short plate.
 
+## The gallery
+
+`walks.html` shows every plate and replays a walk from start to end when
+clicked, drawing each recorded stretch in turn. Plate widths stay
+proportional on screen, so the shared scale still reads. It loads
+`plates/gallery.json`, which the script writes.
+
 ## Open
 
 - On naddi the start dot floats clear of the path, because the first recorded
@@ -99,3 +128,6 @@ legend cannot be clipped off a short plate.
 - Blocks cluster where pauses cluster, so composition is lopsided on walks
   where the rests bunch together — mcleodganj's blocks all sit low.
 - Pause circles are drawn as outlines and can disappear into the red line.
+- Naddi's gap 4 (78 minutes, 124 m) is classed as unrecorded walking because
+  it drifted just over the 100 m threshold. It was almost certainly a long
+  rest, so that threshold may want raising.
