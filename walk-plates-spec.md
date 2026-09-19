@@ -93,6 +93,7 @@ Projection is local equirectangular; GPS spikes above 6 m/s dropped.
 | plate size | 613 x 1300 px | 1530 x 1158 px |
 | recording gaps | 1 | 6 |
 | stretches drawn | 2 | 7 |
+| map data | 264 buildings, 174 roads | none yet |
 
 Naddi sets the ceiling for the shared scale, at 1.727 m per pixel.
 
@@ -121,6 +122,12 @@ are drawn into the `blocks` layer, roads into `roads`.
 
 The walk and its map data are projected against the same reference latitude,
 so buildings sit where the walk actually passed them.
+
+Coverage is uneven and that is kept, not filled. On mcleodganj, OpenStreetMap
+has 459-859 data points per band across the northern third and 11-55 across
+the southern two-thirds, because that stretch is forested hillside with
+nothing mapped on it. The plate is left empty there: the walk goes from empty
+ground into a dense town, and showing that is the point.
 
 ## The script
 
