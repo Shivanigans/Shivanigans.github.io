@@ -32,6 +32,12 @@ supplied, otherwise abstract shapes following the route. Either way they are
 ground, not data: nothing about their size means anything. Roads come through
 as their own layer so they can be switched off.
 
+**Wilderness** — scattered conifers on wooded ground, in their own layer
+beneath the buildings. Not an outline: the forest here is a single 290 km2
+regional polygon, far larger than any one walk, so its shape says nothing.
+What is useful is where its edge crosses the frame, and scattering trees
+inside it shows exactly that — the wood stops where the town starts.
+
 They were originally one-per-pause sized by duration, but that could not be
 read: a random size jitter reversed the ordering within a plate (a 2.3 minute
 pause drew larger than a 3.4 minute one), and per-plate scaling broke it
@@ -93,7 +99,8 @@ Projection is local equirectangular; GPS spikes above 6 m/s dropped.
 | plate size | 613 x 1300 px | 1530 x 1158 px |
 | recording gaps | 1 | 6 |
 | stretches drawn | 2 | 7 |
-| map data | 264 buildings, 174 roads | 760 buildings, 345 roads |
+| map data | 264 buildings, 174 roads | 762 buildings, 345 roads |
+| conifers drawn | 33 | 123 |
 
 Naddi sets the ceiling for the shared scale, at 1.727 m per pixel.
 
@@ -125,11 +132,20 @@ so buildings sit where the walk actually passed them. Both layers are clipped
 to the picture area, because map data runs past the walk in every direction
 and would otherwise carry on through the caption band.
 
-The two extracts under `walks/` are the same 1105 OpenStreetMap ways, from two
-separate downloads five minutes apart. What came back is wider than either
-query asked for and covers both walks, so one file would have served both. It
-is not clear why overpass-turbo returned a wider area than the query
-specified.
+One download covers a whole area and several walks with it, so a file named
+`area.geojson` beside the walks serves any of them. A walk with its own
+`<name>.geojson` uses that instead.
+
+Coverage of wilderness is thin. The query asks for woods, scrub, grassland,
+water, farmland, nature reserves and protected areas, across ways and
+relations. For Dharamshala that returns 3 farmland, 2 water and one enormous
+`natural=wood` relation of 290 km2 with 7532 points. Nothing else on those
+hillsides is mapped at all.
+
+That one polygon is still useful, because its boundary crosses both frames:
+naddi's western corners fall inside it and its eastern ones do not, and 77%
+of that walk is within it. So it separates forest from town, which is the
+distinction worth drawing.
 
 Coverage is uneven and that is kept, not filled. On mcleodganj, OpenStreetMap
 has 459-859 data points per band across the northern third and 11-55 across

@@ -62,6 +62,11 @@ GAP_WALK_KMH = 3.0
 
 MARGIN_SHARE, MARGIN_MIN, MARGIN_MAX = 0.07, 28, 90
 
+# Wilderness is drawn as scattered conifers rather than a filled shape.
+# Roughly one tree per this many pixels of plate, jittered so the spacing
+# does not read as a grid.
+TREE_EVERY_PX = 74
+
 CAPTIONS_FILE = "captions.json"
 OUT_DIR = "plates"
 
@@ -365,6 +370,14 @@ def map_file_for(gpx_path):
     for extension in (".geojson", ".json"):
         if os.path.exists(stem + extension):
             return stem + extension
+
+    # One download usually covers a whole area, and several walks with it.
+    # A file called area.geojson beside the walks serves any of them.
+    folder = os.path.dirname(gpx_path) or "."
+    for shared in ("area.geojson", "area.json"):
+        if os.path.exists(os.path.join(folder, shared)):
+            return os.path.join(folder, shared)
+
     return stem + ".geojson"
 
 
@@ -504,6 +517,62 @@ def touches_frame(shape, bounds, slack):
                min_y - slack <= y <= max_y + slack for x, y in shape)
 
 
+def inside_polygon(point, polygon):
+    """Ray casting: is this point within the outline?"""
+    x, y = point
+    hit = False
+    count = len(polygon)
+    for i in range(count):
+        x1, y1 = polygon[i]
+        x2, y2 = polygon[(i + 1) % count]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            hit = not hit
+    return hit
+
+
+def scatter_trees(wild, bounds, spacing, seed):
+    """Place conifers across the wooded ground inside the plate.
+
+    The forest here is one enormous regional polygon, far bigger than any
+    one walk, so there is no sense drawing its outline. What is useful is
+    where its edge crosses the frame, and scattering trees inside it shows
+    exactly that: the wood stops where the town begins.
+    """
+    if not wild:
+        return []
+
+    dice = random.Random(str(seed) + "trees")
+    min_x, min_y, max_x, max_y = bounds
+    trees = []
+    y = min_y
+    while y <= max_y:
+        x = min_x
+        while x <= max_x:
+            spot = (x + dice.uniform(-0.38, 0.38) * spacing,
+                    y + dice.uniform(-0.38, 0.38) * spacing)
+            if any(inside_polygon(spot, area) for area in wild):
+                trees.append((spot[0], spot[1], dice.uniform(0.78, 1.25)))
+            x += spacing
+        y += spacing
+    return trees
+
+
+def conifer(x, y, size, colour, fade):
+    """A small fir: two stacked tiers over a short trunk."""
+    trunk = size * 0.30
+    return (f'    <path d="M {x:.2f} {y - size:.2f} '
+            f'L {x + size*0.52:.2f} {y - size*0.30:.2f} '
+            f'L {x + size*0.30:.2f} {y - size*0.30:.2f} '
+            f'L {x + size*0.68:.2f} {y + size*0.26:.2f} '
+            f'L {x - size*0.68:.2f} {y + size*0.26:.2f} '
+            f'L {x - size*0.30:.2f} {y - size*0.30:.2f} '
+            f'L {x - size*0.52:.2f} {y - size*0.30:.2f} Z" '
+            f'fill="{colour}" opacity="{fade:.2f}"/>\n'
+            f'    <rect x="{x - size*0.07:.2f}" y="{y + size*0.20:.2f}" '
+            f'width="{size*0.14:.2f}" height="{trunk:.2f}" '
+            f'fill="{colour}" opacity="{fade:.2f}"/>')
+
+
 def escape(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
@@ -584,6 +653,16 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         buildings = [b for b in buildings if touches_frame(b, bounds, slack)]
         roads = [r for r in roads if touches_frame(r, bounds, slack)]
         wild = [w for w in wild if touches_frame(w, bounds, slack)]
+
+    # Wilderness first, so buildings and roads sit on top of the trees.
+    add('  <g id="wilderness" clip-path="url(#frame)">')
+    tree_size = stroke * 1.45
+    dice = random.Random(str(name) + "fade")
+    for tx, ty, wobble in scatter_trees(
+            wild, bounds, metres_per_pixel * TREE_EVERY_PX, name):
+        px, py = place(tx, ty)
+        add(conifer(px, py, tree_size * wobble, BLOCKS, dice.uniform(0.45, 0.8)))
+    add('  </g>')
 
     add('  <g id="blocks" clip-path="url(#frame)">')
     if buildings:
@@ -722,8 +801,8 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         "map": map_path if buildings or roads or wild else None,
         "buildings": len(buildings), "roads": len(roads),
         "wild": len(wild),
-        "wild_share": (sum(polygon_area(w) for w in wild) /
-                       (width_m * height_m) if wild and width_m and height_m else 0.0),
+        "trees": len(scatter_trees(wild, bounds,
+                                   metres_per_pixel * TREE_EVERY_PX, name)),
         "bbox": (south, west, north, east),
         "name": name, "distance": distance, "ascent": ascent,
         "footprint": (width_m, height_m), "plate": (plate_w, plate_h),
@@ -785,8 +864,8 @@ def main(paths):
             print(f"  map data: {stats['buildings']} buildings, "
                   f"{stats['roads']} roads from {os.path.basename(stats['map'])}")
             if stats["wild"]:
-                print(f"  wilderness: {stats['wild']} areas, covering roughly "
-                      f"{stats['wild_share']*100:.0f}% of the frame")
+                print(f"  wilderness: {stats['wild']} areas -> "
+                      f"{stats['trees']} conifers inside the frame")
             else:
                 print(f"  wilderness: none in this file - the query may not "
                       f"have asked for it, or OSM has none mapped here")
