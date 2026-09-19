@@ -1,9 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="613" height="1209" viewBox="0 0 613.06 1209.10">
+  <defs>
+    <clipPath id="frame"><rect x="0" y="0" width="613.06" height="1014.36"/></clipPath>
+  </defs>
   <!-- Walk to mcleodganj: 4.20 km walked, 177 m climbed, 6 pauses, 24 reversals, 1 recording gaps, 5 GPS spikes dropped, 1.727 m per pixel -->
   <g id="background">
     <rect x="0" y="0" width="613.06" height="1209.10" fill="#f9e278"/>
   </g>
-  <g id="blocks">
+  <g id="blocks" clip-path="url(#frame)">
     <polygon points="155.52,150.96 152.53,143.35 140.43,148.10 143.42,155.71 155.52,150.96" fill="#f3b568" opacity="0.46"/>
     <polygon points="407.20,191.87 413.59,200.58 419.51,196.23 413.12,187.52 407.20,191.87" fill="#f3b568" opacity="0.66"/>
     <polygon points="384.36,220.81 385.98,226.34 395.14,223.65 393.52,218.12 384.36,220.81" fill="#f3b568" opacity="0.40"/>
@@ -269,7 +272,7 @@
     <polygon points="436.07,286.66 436.98,305.47 449.79,304.85 448.89,286.04 436.07,286.66" fill="#f3b568" opacity="0.43"/>
     <polygon points="451.91,260.73 452.71,269.06 463.02,268.07 462.22,259.74 451.91,260.73" fill="#f3b568" opacity="0.57"/>
   </g>
-  <g id="roads">
+  <g id="roads" clip-path="url(#frame)">
     <polyline points="698.75,-39.94 707.18,-39.97 719.96,-40.18 721.35,-40.21 743.53,-43.78 757.97,-37.42 757.68,-36.52 753.77,-24.07 767.15,-23.60 757.44,-2.96 770.17,-7.31 785.01,-22.67 796.03,-17.24 801.82,-9.90 806.27,9.37 819.53,14.49 836.33,28.46 845.12,25.98 858.38,36.52 870.91,39.79 881.81,48.78 912.39,55.92 926.43,65.86 943.10,70.44" fill="none" stroke="#f3b568" stroke-width="3.87" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
     <polyline points="662.83,42.54 675.52,38.12 675.00,25.71 677.03,12.32 679.15,1.67 680.13,-2.42 681.64,-10.02 679.22,-26.36 692.37,-30.86 693.91,-36.39 698.75,-39.94 712.69,-44.45 719.18,-48.35 728.34,-56.79 747.10,-64.73 754.64,-67.48 759.91,-72.51 753.20,-72.14 761.42,-79.66 765.67,-88.36 771.69,-93.47 783.87,-109.82 793.83,-128.32 799.04,-138.00 809.44,-143.54 815.73,-146.90 824.62,-156.70 840.01,-166.24" fill="none" stroke="#f3b568" stroke-width="3.87" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
     <polyline points="652.14,62.40 652.46,65.94 653.42,69.01 656.60,76.42 652.19,82.01" fill="none" stroke="#f3b568" stroke-width="3.87" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>

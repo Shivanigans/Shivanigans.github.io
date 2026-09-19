@@ -520,6 +520,12 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
 
     add(f'<svg xmlns="http://www.w3.org/2000/svg" width="{plate_w:.0f}" '
         f'height="{plate_h:.0f}" viewBox="0 0 {plate_w:.2f} {plate_h:.2f}">')
+    # Map data runs past the walk in every direction, so hold it inside the
+    # picture. Without this, roads carry on down through the caption band.
+    add('  <defs>')
+    add(f'    <clipPath id="frame"><rect x="0" y="0" width="{plate_w:.2f}" '
+        f'height="{art_h + margin * 2:.2f}"/></clipPath>')
+    add('  </defs>')
     add(f'  <!-- {name}: {say_distance(distance)} walked, {ascent:.0f} m climbed, '
         f'{len(pauses)} pauses, {len(reversals)} reversals, '
         f'{len(gaps)} recording gaps, {dropped} GPS spikes dropped, '
@@ -538,7 +544,7 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         buildings = [b for b in buildings if touches_frame(b, bounds, slack)]
         roads = [r for r in roads if touches_frame(r, bounds, slack)]
 
-    add('  <g id="blocks">')
+    add('  <g id="blocks" clip-path="url(#frame)">')
     if buildings:
         # Real building footprints from the map data, in their real places.
         dice = random.Random(name)
@@ -559,7 +565,7 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     add('  </g>')
 
     # Roads as their own layer, faint, so you can switch them off in Figma.
-    add('  <g id="roads">')
+    add('  <g id="roads" clip-path="url(#frame)">')
     for shape in roads:
         points = " ".join(f"{x:.2f},{y:.2f}"
                           for x, y in (place(px, py) for px, py in shape))

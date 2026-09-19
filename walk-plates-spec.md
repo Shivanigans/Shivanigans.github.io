@@ -93,7 +93,7 @@ Projection is local equirectangular; GPS spikes above 6 m/s dropped.
 | plate size | 613 x 1300 px | 1530 x 1158 px |
 | recording gaps | 1 | 6 |
 | stretches drawn | 2 | 7 |
-| map data | 264 buildings, 174 roads | none yet |
+| map data | 264 buildings, 174 roads | 760 buildings, 345 roads |
 
 Naddi sets the ceiling for the shared scale, at 1.727 m per pixel.
 
@@ -121,7 +121,15 @@ next to the GPX. No coding, and no network needed on later runs. Buildings
 are drawn into the `blocks` layer, roads into `roads`.
 
 The walk and its map data are projected against the same reference latitude,
-so buildings sit where the walk actually passed them.
+so buildings sit where the walk actually passed them. Both layers are clipped
+to the picture area, because map data runs past the walk in every direction
+and would otherwise carry on through the caption band.
+
+The two extracts under `walks/` are the same 1105 OpenStreetMap ways, from two
+separate downloads five minutes apart. What came back is wider than either
+query asked for and covers both walks, so one file would have served both. It
+is not clear why overpass-turbo returned a wider area than the query
+specified.
 
 Coverage is uneven and that is kept, not filled. On mcleodganj, OpenStreetMap
 has 459-859 data points per band across the northern third and 11-55 across
