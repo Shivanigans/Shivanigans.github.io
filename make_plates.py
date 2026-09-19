@@ -313,22 +313,38 @@ def say_distance(metres):
     return f"{metres:.0f} m" if metres < 1000 else f"{metres/1000:.2f} km"
 
 
-def make_blocks(pauses, span, seed):
-    """Abstract background blocks, one per pause, bigger the longer you
-    stood there. Nudged and rotated so they read as abstract rather than as
-    map markers."""
-    if not pauses:
+def make_blocks(runs, span, seed):
+    """Abstract ground behind the walk.
+
+    These are decoration, not data. They follow the route loosely so the
+    plate has some geography behind it, and they fade back so the red line
+    stays the thing you read. Nothing about their size means anything -
+    pauses are carried by the circles, which are on a shared scale.
+
+    The seed is the walk's name, so a given walk always draws the same
+    ground rather than reshuffling every time the script runs.
+    """
+    points = [p for run in runs for p in run]
+    if not points:
         return []
+
     dice = random.Random(seed)
-    longest = max(p["seconds"] for p in pauses)
+    route = sum(run_distance(run) for run in runs)
+    count = int(clamp(round(math.sqrt(route) / 6), 6, 22))
+
     out = []
-    for pause in pauses:
-        size = span * (0.06 + 0.16 * (pause["seconds"] / longest))
-        out.append({"x": pause["x"] + dice.uniform(-0.35, 0.35) * size,
-                    "y": pause["y"] + dice.uniform(-0.35, 0.35) * size,
-                    "w": size * dice.uniform(0.7, 1.5),
-                    "h": size * dice.uniform(0.7, 1.5),
-                    "angle": dice.uniform(-18, 18)})
+    for i in range(count):
+        # Spread the anchors evenly along the walk, then push each one off
+        # the line so the blocks sit behind the route rather than on it.
+        anchor = points[min(len(points) - 1,
+                            int((i + dice.uniform(0.2, 0.8)) / count * len(points)))]
+        size = span * dice.uniform(0.07, 0.19)
+        out.append({"x": anchor[0] + dice.uniform(-0.6, 0.6) * size,
+                    "y": anchor[1] + dice.uniform(-0.6, 0.6) * size,
+                    "w": size * dice.uniform(0.75, 1.45),
+                    "h": size * dice.uniform(0.75, 1.45),
+                    "angle": dice.uniform(-20, 20),
+                    "fade": dice.uniform(0.32, 0.72)})
     return out
 
 
@@ -400,11 +416,12 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     add('  </g>')
 
     add('  <g id="blocks">')
-    for block in make_blocks(pauses, max(width_m, height_m), name):
+    for block in make_blocks(drawn, max(width_m, height_m), name):
         bx, by = place(block["x"], block["y"])
         bw, bh = block["w"] / metres_per_pixel, block["h"] / metres_per_pixel
         add(f'    <rect x="{bx - bw/2:.2f}" y="{by - bh/2:.2f}" '
             f'width="{bw:.2f}" height="{bh:.2f}" fill="{BLOCKS}" '
+            f'opacity="{block["fade"]:.2f}" '
             f'transform="rotate({block["angle"]:.1f} {bx:.2f} {by:.2f})"/>')
     add('  </g>')
 

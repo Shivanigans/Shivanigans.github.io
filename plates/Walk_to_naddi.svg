@@ -4,24 +4,21 @@
     <rect x="0" y="0" width="1529.96" height="1149.31" fill="#f9e278"/>
   </g>
   <g id="blocks">
-    <rect x="1240.57" y="213.16" width="134.63" height="146.76" fill="#f3b568" transform="rotate(-14.0 1307.88 286.54)"/>
-    <rect x="1226.34" y="148.03" width="90.63" height="166.89" fill="#f3b568" transform="rotate(18.0 1271.65 231.48)"/>
-    <rect x="1138.19" y="194.52" width="84.20" height="119.33" fill="#f3b568" transform="rotate(16.2 1180.29 254.18)"/>
-    <rect x="1177.80" y="165.66" width="85.62" height="105.92" fill="#f3b568" transform="rotate(-13.7 1220.60 218.62)"/>
-    <rect x="1070.81" y="199.85" width="169.23" height="117.32" fill="#f3b568" transform="rotate(11.3 1155.43 258.51)"/>
-    <rect x="1064.48" y="285.39" width="90.17" height="95.22" fill="#f3b568" transform="rotate(13.8 1109.56 333.00)"/>
-    <rect x="957.57" y="419.61" width="183.05" height="97.15" fill="#f3b568" transform="rotate(-8.1 1049.09 468.19)"/>
-    <rect x="734.72" y="138.38" width="190.44" height="167.13" fill="#f3b568" transform="rotate(7.8 829.94 221.94)"/>
-    <rect x="221.54" y="133.13" width="92.75" height="100.18" fill="#f3b568" transform="rotate(16.8 267.91 183.22)"/>
-    <rect x="165.29" y="4.40" width="202.26" height="246.72" fill="#f3b568" transform="rotate(16.8 266.42 127.76)"/>
-    <rect x="192.64" y="29.74" width="109.42" height="151.83" fill="#f3b568" transform="rotate(-17.2 247.35 105.66)"/>
-    <rect x="145.29" y="68.13" width="128.22" height="129.38" fill="#f3b568" transform="rotate(-5.7 209.40 132.82)"/>
-    <rect x="182.89" y="21.98" width="161.26" height="180.84" fill="#f3b568" transform="rotate(16.8 263.53 112.41)"/>
-    <rect x="295.51" y="374.91" width="165.07" height="105.49" fill="#f3b568" transform="rotate(-16.9 378.05 427.65)"/>
-    <rect x="1114.43" y="585.47" width="165.03" height="188.52" fill="#f3b568" transform="rotate(3.2 1196.94 679.73)"/>
-    <rect x="1013.80" y="445.34" width="144.41" height="87.03" fill="#f3b568" transform="rotate(-14.4 1086.01 488.85)"/>
-    <rect x="52.13" y="175.95" width="395.09" height="238.45" fill="#f3b568" transform="rotate(-13.2 249.68 295.17)"/>
-    <rect x="975.30" y="360.59" width="325.49" height="174.29" fill="#f3b568" transform="rotate(6.5 1138.05 447.74)"/>
+    <rect x="1202.09" y="95.67" width="149.73" height="220.17" fill="#f3b568" opacity="0.35" transform="rotate(3.1 1276.95 205.75)"/>
+    <rect x="883.62" y="259.38" width="201.02" height="270.19" fill="#f3b568" opacity="0.59" transform="rotate(18.0 984.13 394.48)"/>
+    <rect x="612.29" y="252.18" width="124.49" height="121.62" fill="#f3b568" opacity="0.49" transform="rotate(19.4 674.53 312.99)"/>
+    <rect x="493.14" y="340.19" width="188.66" height="291.97" fill="#f3b568" opacity="0.49" transform="rotate(-15.0 587.48 486.17)"/>
+    <rect x="226.20" y="124.94" width="151.09" height="144.13" fill="#f3b568" opacity="0.61" transform="rotate(3.4 301.75 197.01)"/>
+    <rect x="38.77" y="86.73" width="259.87" height="235.19" fill="#f3b568" opacity="0.53" transform="rotate(-9.6 168.71 204.32)"/>
+    <rect x="110.30" y="165.76" width="246.16" height="328.19" fill="#f3b568" opacity="0.46" transform="rotate(-19.1 233.39 329.85)"/>
+    <rect x="232.14" y="349.70" width="237.36" height="234.25" fill="#f3b568" opacity="0.63" transform="rotate(3.6 350.82 466.83)"/>
+    <rect x="329.27" y="323.66" width="127.11" height="122.15" fill="#f3b568" opacity="0.50" transform="rotate(-3.8 392.82 384.74)"/>
+    <rect x="1005.91" y="351.41" width="176.52" height="261.37" fill="#f3b568" opacity="0.36" transform="rotate(-16.3 1094.17 482.09)"/>
+    <rect x="1191.85" y="626.06" width="80.48" height="128.02" fill="#f3b568" opacity="0.64" transform="rotate(3.2 1232.09 690.07)"/>
+    <rect x="1051.45" y="480.31" width="293.66" height="227.83" fill="#f3b568" opacity="0.58" transform="rotate(-15.6 1198.28 594.23)"/>
+    <rect x="1168.94" y="466.26" width="202.51" height="230.05" fill="#f3b568" opacity="0.34" transform="rotate(-2.7 1270.20 581.29)"/>
+    <rect x="1118.94" y="310.36" width="154.37" height="278.58" fill="#f3b568" opacity="0.43" transform="rotate(4.4 1196.13 449.65)"/>
+    <rect x="1199.28" y="493.93" width="190.33" height="218.90" fill="#f3b568" opacity="0.33" transform="rotate(11.4 1294.44 603.38)"/>
   </g>
   <g id="pace" display="none">
     <line x1="1408.60" y1="401.18" x2="1407.24" y2="400.56" stroke="#e13a3d" stroke-width="4.32" stroke-linecap="round"/>

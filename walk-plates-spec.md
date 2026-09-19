@@ -27,8 +27,19 @@ itself encodes distance. Short walks print small and that is the intent.
 **No minimum plate size.** A 400 m walk prints at roughly 352 x 459 px beside
 naddi's 1528 x 1347. The size difference is part of what the gallery says.
 
-**Blocks** — derived from the walk's own pauses, one per pause, sized by
-duration. No two backgrounds repeat.
+**Blocks** — decoration, not data. They follow the route loosely so the plate
+has some geography behind it, and they fade back so the red line stays the
+thing you read. Nothing about their size means anything.
+
+They were originally one-per-pause sized by duration, but that could not be
+read: a random size jitter reversed the ordering within a plate (a 2.3 minute
+pause drew larger than a 3.4 minute one), and per-plate scaling broke it
+across plates (naddi's 15 minute pause drew larger than mcleodganj's 39
+minute one). Pauses are carried by the circles, which are on a shared scale
+and have a legend.
+
+Each walk's blocks are seeded from its name, so a walk always draws the same
+ground rather than reshuffling on every run.
 
 **Pause rule** — displacement-based: stayed within 10 m for at least 2
 minutes. Chosen over a speed rule because on a 21 min/km uphill walk, slow
@@ -125,9 +136,9 @@ proportional on screen, so the shared scale still reads. It loads
 
 - On naddi the start dot floats clear of the path, because the first recorded
   stretch is too short to draw. Truthful, but reads as a mistake.
-- Blocks cluster where pauses cluster, so composition is lopsided on walks
-  where the rests bunch together — mcleodganj's blocks all sit low.
 - Pause circles are drawn as outlines and can disappear into the red line.
+  They now carry the pause data alone, so legibility matters more than it did.
+- Blocks bleed off the plate edge where the route runs close to it.
 - Naddi's gap 4 (78 minutes, 124 m) is classed as unrecorded walking because
   it drifted just over the 100 m threshold. It was almost certainly a long
   rest, so that threshold may want raising.
