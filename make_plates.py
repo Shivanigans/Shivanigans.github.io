@@ -64,12 +64,17 @@ PAUSE_SECONDS = 120
 RESAMPLE_M = 12.0
 TURN_DEG = 85.0
 
+# A break in recording longer than this many seconds is treated as a gap.
+# The path stops and restarts rather than bridging it with a straight line,
+# because a bridged gap looks like route you walked and was not.
+GAP_SECONDS = 45
+
 # Margins and the caption band. Your plates now range from a few hundred
 # pixels to well over a thousand, so these are worked out as a share of
 # the plate rather than fixed, then held between a floor and a ceiling.
 # To go back to fixed values, set both numbers in a pair to the same thing.
 MARGIN_SHARE, MARGIN_MIN, MARGIN_MAX = 0.07, 28, 90
-BAND_SHARE,   BAND_MIN,   BAND_MAX   = 0.11, 54, 150
+BAND_SHARE,   BAND_MIN,   BAND_MAX   = 0.15, 82, 190
 
 # Captions. Put your own text in captions.json next to this script, like:
 #   {"Walk to mcleodganj": "two hours uphill, mostly standing still"}
@@ -145,6 +150,21 @@ def drop_spikes(track):
         in_a_row = 0
         kept.append(point)
     return kept, dropped
+
+
+def split_on_gaps(track):
+    """Cut the walk wherever recording stopped for a while.
+
+    Strava pauses on its own, and signal drops in hills. Joining the two
+    ends of such a break draws a straight line across the plate that
+    looks like walking but is not, so each stretch is kept separate.
+    """
+    runs = [[track[0]]]
+    for i in range(1, len(track)):
+        if (track[i][2] - track[i - 1][2]).total_seconds() > GAP_SECONDS:
+            runs.append([])
+        runs[-1].append(track[i])
+    return [run for run in runs if len(run) >= 2]
 
 
 def smooth(track, window=SMOOTH_WINDOW):
@@ -283,7 +303,24 @@ def make_blocks(pauses, bounds, seed):
     return blocks
 
 
-def build_plate(name, gpx_path, metres_per_pixel, caption):
+def pause_radius(seconds, longest_pause, stroke):
+    """How big to draw a pause. Area grows with time, which is how the eye
+    reads size, and the scale is shared across every plate."""
+    share = min(1.0, seconds / longest_pause) if longest_pause else 0.0
+    return stroke * (0.8 + 2.2 * math.sqrt(share))
+
+
+def legend_steps(longest_pause):
+    """Pick up to three round durations to label in the legend."""
+    minutes = longest_pause / 60
+    options = [2, 5, 10, 15, 30, 45, 60, 90, 120]
+    usable = [m for m in options if m <= minutes]
+    if not usable:
+        return [round(minutes)]
+    return usable[-3:] if len(usable) >= 3 else usable
+
+
+def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     """Do the whole job for one walk and return the finished SVG text."""
     _, raw = read_gpx(gpx_path)
     track = to_metres(raw)
@@ -295,12 +332,13 @@ def build_plate(name, gpx_path, metres_per_pixel, caption):
     pauses = find_pauses(track)
     reversals = find_reversals(track)
 
-    line = smooth(track)
-    line = resample(line, every=max(metres_per_pixel * DRAW_EVERY_PX, 1.0))
-    paces = pace_segments(line)
+    step = max(metres_per_pixel * DRAW_EVERY_PX, 1.0)
+    runs = [resample(smooth(run), every=step) for run in split_on_gaps(track)]
+    runs = [run for run in runs if len(run) >= 2]
+    paces = [seg for run in runs for seg in pace_segments(run)]
 
-    xs = [p[0] for p in line]
-    ys = [p[1] for p in line]
+    xs = [p[0] for run in runs for p in run]
+    ys = [p[1] for run in runs for p in run]
     min_x, max_x = min(xs), max(xs)
     min_y, max_y = min(ys), max(ys)
     width_m, height_m = max_x - min_x, max_y - min_y
@@ -311,7 +349,18 @@ def build_plate(name, gpx_path, metres_per_pixel, caption):
     long_side = max(art_w, art_h)
 
     margin = clamp(long_side * MARGIN_SHARE, MARGIN_MIN, MARGIN_MAX)
-    band = clamp(long_side * BAND_SHARE, BAND_MIN, BAND_MAX)
+
+    # Work out the type sizes first, then make the caption band tall
+    # enough to actually hold the caption and the legend. Sizing it as a
+    # flat share of the plate clipped the legend off short plates.
+    size = clamp(long_side / 42, 13, 30)
+    small = size * 0.72
+    stroke = clamp(long_side / 115, 3.5, 14)
+    steps = legend_steps(longest_pause)
+    widest = max(pause_radius(m * 60, longest_pause, stroke) for m in steps)
+
+    needed = size * 1.6 + small * 2.6 + widest * 2 + small * 1.8 + margin * 0.5
+    band = max(clamp(long_side * BAND_SHARE, BAND_MIN, BAND_MAX), needed)
 
     plate_w = art_w + margin * 2
     plate_h = art_h + margin * 2 + band
@@ -321,7 +370,6 @@ def build_plate(name, gpx_path, metres_per_pixel, caption):
         return (margin + (x - min_x) / metres_per_pixel,
                 margin + (max_y - y) / metres_per_pixel)
 
-    stroke = clamp(long_side / 115, 3.5, 14)
     dot = stroke * 1.7
 
     parts = []
@@ -361,19 +409,23 @@ def build_plate(name, gpx_path, metres_per_pixel, caption):
                 f'stroke="{PATH}" stroke-width="{w:.2f}" stroke-linecap="round"/>')
     add('  </g>')
 
-    # path
-    points = " ".join(f"{x:.2f},{y:.2f}" for x, y in (place(p[0], p[1]) for p in line))
+    # path - one polyline per unbroken stretch of recording
     add('  <g id="path">')
-    add(f'    <polyline points="{points}" fill="none" stroke="{PATH}" '
-        f'stroke-width="{stroke:.2f}" stroke-linecap="round" stroke-linejoin="round"/>')
+    for run in runs:
+        points = " ".join(f"{x:.2f},{y:.2f}"
+                          for x, y in (place(p[0], p[1]) for p in run))
+        add(f'    <polyline points="{points}" fill="none" stroke="{PATH}" '
+            f'stroke-width="{stroke:.2f}" stroke-linecap="round" '
+            f'stroke-linejoin="round"/>')
     add('  </g>')
 
-    # pauses
+    # pauses - sized against the longest pause across ALL walks, so a
+    # circle of a given size means the same thing on every plate and the
+    # legend below is true.
     add('  <g id="pauses">')
-    longest = max((p["seconds"] for p in pauses), default=1.0)
     for pause in pauses:
         px, py = place(pause["x"], pause["y"])
-        r = dot * (0.6 + 1.1 * (pause["seconds"] / longest))
+        r = pause_radius(pause["seconds"], longest_pause, stroke)
         add(f'    <circle cx="{px:.2f}" cy="{py:.2f}" r="{r:.2f}" fill="none" '
             f'stroke="{PATH}" stroke-width="{stroke*0.5:.2f}"/>')
     add('  </g>')
@@ -386,24 +438,42 @@ def build_plate(name, gpx_path, metres_per_pixel, caption):
     add('  </g>')
 
     # endpoints
-    start_x, start_y = place(line[0][0], line[0][1])
-    end_x, end_y = place(line[-1][0], line[-1][1])
+    start_x, start_y = place(runs[0][0][0], runs[0][0][1])
+    end_x, end_y = place(runs[-1][-1][0], runs[-1][-1][1])
     add('  <g id="endpoints">')
     add(f'    <circle cx="{start_x:.2f}" cy="{start_y:.2f}" r="{dot:.2f}" fill="{PATH}"/>')
     add(f'    <circle cx="{end_x:.2f}" cy="{end_y:.2f}" r="{dot:.2f}" fill="{PATH}"/>')
     add('  </g>')
 
     # caption
-    size = clamp(long_side / 42, 13, 30)
+    base = plate_h - band + size * 1.6
     add('  <g id="caption">')
-    add(f'    <text x="{margin:.2f}" y="{plate_h - band + size * 1.6:.2f}" '
+    add(f'    <text x="{margin:.2f}" y="{base:.2f}" '
         f'font-family="monospace" font-size="{size:.1f}" fill="{CAPTION}">'
         f'{escape(caption)}</text>')
+    add('  </g>')
+
+    # legend - what the pause circles mean. Shared across every plate.
+    add('  <g id="legend">')
+    x = margin + widest
+    row = base + small * 2.5 + widest
+    add(f'    <text x="{margin:.2f}" y="{base + small * 1.9:.2f}" '
+        f'font-family="monospace" font-size="{small:.1f}" fill="{CAPTION}">'
+        f'stood still</text>')
+    for mins in steps:
+        r = pause_radius(mins * 60, longest_pause, stroke)
+        add(f'    <circle cx="{x:.2f}" cy="{row:.2f}" r="{r:.2f}" fill="none" '
+            f'stroke="{CAPTION}" stroke-width="{stroke*0.4:.2f}"/>')
+        add(f'    <text x="{x:.2f}" y="{row + widest + small * 1.15:.2f}" '
+            f'font-family="monospace" font-size="{small:.1f}" fill="{CAPTION}" '
+            f'text-anchor="middle">{mins} min</text>')
+        x += widest * 2 + small * 3.2
     add('  </g>')
 
     add('</svg>')
 
     stats = {
+        "runs": len(runs),
         "name": name,
         "km": total_distance(track) / 1000,
         "footprint": (width_m, height_m),
@@ -437,16 +507,26 @@ def main(paths):
         ys = [p[1] for p in track]
         biggest = max(biggest, max(xs) - min(xs), max(ys) - min(ys))
 
+    # The longest pause anywhere sets the pause scale for every plate.
+    longest_pause = 1.0
+    for path in paths:
+        _, raw = read_gpx(path)
+        track, _ = drop_spikes(to_metres(raw))
+        for pause in find_pauses(track):
+            longest_pause = max(longest_pause, pause["seconds"])
+
     metres_per_pixel = biggest / TARGET_LONG_SIDE
     print(f"Shared scale: {metres_per_pixel:.3f} metres per pixel "
-          f"(set by a footprint of {biggest:.0f} m)\n")
+          f"(set by a footprint of {biggest:.0f} m)")
+    print(f"Longest pause anywhere: {longest_pause/60:.0f} min "
+          f"- this sets the pause circle scale on every plate\n")
 
     os.makedirs(OUT_DIR, exist_ok=True)
 
     # Second pass: draw them.
     for path in paths:
         name, _ = read_gpx(path)
-        svg, stats = build_plate(name, path, metres_per_pixel,
+        svg, stats = build_plate(name, path, metres_per_pixel, longest_pause,
                                  captions.get(name, name))
         safe = "".join(c if c.isalnum() or c in " -_" else "" for c in name)
         out = os.path.join(OUT_DIR, safe.strip().replace(" ", "_") + ".svg")
@@ -461,6 +541,9 @@ def main(paths):
         print(f"  plate {w:.0f} x {h:.0f} px ({shape})")
         print(f"  {stats['pauses']} pauses -> {stats['pauses']} blocks, "
               f"{stats['reversals']} reversals, {stats['dropped']} spikes dropped")
+        if stats["runs"] > 1:
+            print(f"  path broken into {stats['runs']} stretches "
+                  f"by {stats['runs'] - 1} recording gaps")
         print(f"  written to {out}\n")
 
 

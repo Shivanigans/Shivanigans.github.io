@@ -37,6 +37,16 @@ climbing and standing still are indistinguishable by speed.
 **Reversals** — all kept, none filtered. Switchbacks are part of what a steep
 walk is.
 
+**Recording gaps** — not bridged. Where Strava stopped recording for more than
+45 seconds the path stops and restarts, because a bridged gap draws a straight
+line that reads as walked route and was not. Naddi breaks into 7 stretches,
+mcleodganj into 2.
+
+**Pause scale** — shared across every plate, set by the longest pause
+anywhere, so a circle of a given size means the same duration on any plate and
+the legend is true. Radius grows with the square root of duration, so area
+tracks time.
+
 **Captions** — written by hand, never generated.
 
 ## Measured walks
@@ -55,7 +65,8 @@ Projection is local equirectangular; GPS spikes above 6 m/s dropped.
 | moving pace | 21.4 min/km | 23.4 min/km |
 | pauses (10 m / 2 min) | 5 | 16 |
 | reversals | 23 | 74 |
-| plate size | 613 x 1112 px | 1530 x 914 px |
+| plate size | 613 x 1188 px | 1530 x 1016 px |
+| recording gaps | 1 | 6 |
 
 Naddi sets the ceiling for the shared scale, at 1.727 m per pixel.
 
@@ -76,15 +87,15 @@ Captions go in `captions.json`, keyed by Strava track name. Layers are
 `background`, `blocks`, `path`, `pace`, `pauses`, `reversals`, `endpoints`
 and `caption`; `pace` and `reversals` are hidden by default.
 
-Margins and the caption band are worked out as a share of the plate (7% and
-11%) held between a floor and a ceiling, rather than fixed, because plates now
-range from a few hundred pixels to over 1500. Setting each pair's floor and
-ceiling to the same number restores fixed behaviour.
+Margins are worked out as a share of the plate (7%) held between a floor and a
+ceiling, rather than fixed, because plates now range from a few hundred pixels
+to over 1500. The caption band is measured from its actual contents so the
+legend cannot be clipped off a short plate.
 
 ## Open
 
-- Naddi has six recording gaps over 30 seconds, one of 78 minutes and one
-  covering 1444 m. The path currently bridges these with straight lines,
-  which read as walked route but were not.
-- Whether pause circles should sit on the path or be offset; they currently
-  overlap it and can read as artefacts.
+- On naddi the start dot floats clear of the path, because the first recorded
+  stretch is too short to draw. Truthful, but reads as a mistake.
+- Blocks cluster where pauses cluster, so composition is lopsided on walks
+  where the rests bunch together — mcleodganj's blocks all sit low.
+- Pause circles are drawn as outlines and can disappear into the red line.
