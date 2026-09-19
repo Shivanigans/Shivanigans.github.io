@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="613" height="1282" viewBox="0 0 613.06 1281.73">
+<svg xmlns="http://www.w3.org/2000/svg" width="613" height="1209" viewBox="0 0 613.06 1209.10">
   <!-- Walk to mcleodganj: 4.20 km walked, 177 m climbed, 6 pauses, 24 reversals, 1 recording gaps, 5 GPS spikes dropped, 1.727 m per pixel -->
   <g id="background">
-    <rect x="0" y="0" width="613.06" height="1281.73" fill="#f9e278"/>
+    <rect x="0" y="0" width="613.06" height="1209.10" fill="#f9e278"/>
   </g>
   <g id="blocks">
     <rect x="119.27" y="738.37" width="155.79" height="128.01" fill="#f3b568" opacity="0.60" transform="rotate(-13.5 197.16 802.38)"/>
@@ -1314,14 +1314,5 @@
   </g>
   <g id="figures">
     <text x="62.29" y="1170.20" font-family="JetBrains Mono, ui-monospace, monospace" font-size="15.3" fill="#555555">4.20 km walked</text>
-  </g>
-  <g id="legend">
-    <text x="550.78" y="1170.20" font-family="JetBrains Mono, ui-monospace, monospace" font-size="15.3" fill="#555555" text-anchor="end">stood still</text>
-    <circle cx="341.74" cy="1204.99" r="14.78" fill="none" stroke="#555555" stroke-width="3.09"/>
-    <text x="341.74" y="1243.60" font-family="JetBrains Mono, ui-monospace, monospace" font-size="15.3" fill="#555555" text-anchor="middle">10 min</text>
-    <circle cx="435.73" cy="1204.99" r="16.71" fill="none" stroke="#555555" stroke-width="3.09"/>
-    <text x="435.73" y="1243.60" font-family="JetBrains Mono, ui-monospace, monospace" font-size="15.3" fill="#555555" text-anchor="middle">15 min</text>
-    <circle cx="529.71" cy="1204.99" r="21.06" fill="none" stroke="#555555" stroke-width="3.09"/>
-    <text x="529.71" y="1243.60" font-family="JetBrains Mono, ui-monospace, monospace" font-size="15.3" fill="#555555" text-anchor="middle">30 min</text>
   </g>
 </svg>

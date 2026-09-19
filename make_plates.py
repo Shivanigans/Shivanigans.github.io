@@ -298,15 +298,9 @@ def clamp(value, low, high):
 
 def pause_radius(seconds, longest, stroke):
     """Area grows with time, because that is how the eye reads size. The
-    scale is shared across every plate, so the legend is true."""
+    scale is shared across every plate, so circles are comparable."""
     share = min(1.0, seconds / longest) if longest else 0.0
     return stroke * (0.8 + 2.2 * math.sqrt(share))
-
-
-def legend_steps(longest):
-    minutes = longest / 60
-    usable = [m for m in (2, 5, 10, 15, 30, 45, 60, 90, 120) if m <= minutes]
-    return usable[-3:] if usable else [max(1, round(minutes))]
 
 
 def say_distance(metres):
@@ -385,13 +379,10 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     stroke = clamp(long_side / 115, 3.5, 14)
     dot = stroke * 1.7
 
-    steps = legend_steps(longest_pause)
-    widest = max(pause_radius(m * 60, longest_pause, stroke) for m in steps)
     profile_h = size * 3.2
 
     # The band is measured from what it has to hold, so nothing is clipped.
-    band = (size * 1.6 + size * 0.9 + profile_h + small * 2.4
-            + widest * 2 + small * 2.0 + margin * 0.6)
+    band = size * 1.6 + size * 0.9 + profile_h + small * 2.4 + margin * 0.6
 
     plate_w = art_w + margin * 2
     plate_h = art_h + margin * 2 + band
@@ -506,28 +497,11 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
             f'stroke-width="{stroke*0.4:.2f}" stroke-linejoin="round"/>')
     add('  </g>')
 
-    # Distance under the profile on the left, pause legend on the right.
+    # Distance walked, under the profile.
     row_text = top + profile_h + small * 2.3
     add('  <g id="figures">')
     add(f'    <text x="{left:.2f}" y="{row_text:.2f}" font-family="{FONT}" '
         f'font-size="{small:.1f}" fill="{CAPTION}">{say_distance(distance)} walked</text>')
-    add('  </g>')
-
-    add('  <g id="legend">')
-    spacing = widest * 2 + small * 3.4
-    legend_w = spacing * (len(steps) - 1) + widest * 2
-    x = right - legend_w + widest
-    row = row_text + small * 0.9 + widest
-    add(f'    <text x="{right:.2f}" y="{row_text:.2f}" font-family="{FONT}" '
-        f'font-size="{small:.1f}" fill="{CAPTION}" text-anchor="end">stood still</text>')
-    for mins in steps:
-        add(f'    <circle cx="{x:.2f}" cy="{row:.2f}" '
-            f'r="{pause_radius(mins*60, longest_pause, stroke):.2f}" fill="none" '
-            f'stroke="{CAPTION}" stroke-width="{stroke*0.4:.2f}"/>')
-        add(f'    <text x="{x:.2f}" y="{row + widest + small*1.15:.2f}" '
-            f'font-family="{FONT}" font-size="{small:.1f}" fill="{CAPTION}" '
-            f'text-anchor="middle">{mins} min</text>')
-        x += spacing
     add('  </g>')
 
     add('</svg>')

@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1530" height="1149" viewBox="0 0 1529.96 1149.31">
+<svg xmlns="http://www.w3.org/2000/svg" width="1530" height="1042" viewBox="0 0 1529.96 1042.21">
   <!-- Walk to naddi: 10.74 km walked, 416 m climbed, 18 pauses, 73 reversals, 6 recording gaps, 29 GPS spikes dropped, 1.727 m per pixel -->
   <g id="background">
-    <rect x="0" y="0" width="1529.96" height="1149.31" fill="#f9e278"/>
+    <rect x="0" y="0" width="1529.96" height="1042.21" fill="#f9e278"/>
   </g>
   <g id="blocks">
     <rect x="1202.09" y="95.67" width="149.73" height="220.17" fill="#f3b568" opacity="0.35" transform="rotate(3.1 1276.95 205.75)"/>
@@ -2997,14 +2997,5 @@
   </g>
   <g id="figures">
     <text x="90.00" y="986.05" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.6" fill="#555555">10.74 km walked</text>
-  </g>
-  <g id="legend">
-    <text x="1439.96" y="986.05" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.6" fill="#555555" text-anchor="end">stood still</text>
-    <circle cx="1133.30" cy="1037.44" r="22.42" fill="none" stroke="#555555" stroke-width="4.70"/>
-    <text x="1133.30" y="1094.23" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.6" fill="#555555" text-anchor="middle">10 min</text>
-    <circle cx="1270.65" cy="1037.44" r="25.35" fill="none" stroke="#555555" stroke-width="4.70"/>
-    <text x="1270.65" y="1094.23" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.6" fill="#555555" text-anchor="middle">15 min</text>
-    <circle cx="1408.00" cy="1037.44" r="31.95" fill="none" stroke="#555555" stroke-width="4.70"/>
-    <text x="1408.00" y="1094.23" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.6" fill="#555555" text-anchor="middle">30 min</text>
   </g>
 </svg>

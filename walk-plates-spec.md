@@ -66,9 +66,9 @@ Across is distance walked, up is height. Distance walked is labelled beneath.
 installed locally for Figma to render it.
 
 **Pause scale** — shared across every plate, set by the longest pause
-anywhere, so a circle of a given size means the same duration on any plate and
-the legend is true. Radius grows with the square root of duration, so area
-tracks time.
+anywhere, so circles are comparable between plates. Radius grows with the
+square root of duration, so area tracks time. No legend: the reading it
+offered felt more precise than the underlying pause detection warrants.
 
 **Captions** — written by hand, never generated.
 
@@ -117,8 +117,9 @@ worked out if the script can see them all:
     python3 make_plates.py walks/*.gpx
 
 Captions go in `captions.json`, keyed by Strava track name. Layers are
-`background`, `blocks`, `path`, `pace`, `pauses`, `reversals`, `endpoints`
-and `caption`; `pace` and `reversals` are hidden by default.
+`background`, `blocks`, `pace`, `gaps`, `path`, `pauses`, `reversals`,
+`endpoints`, `caption`, `elevation` and `figures`; `pace` and `reversals` are
+hidden by default.
 
 Margins are worked out as a share of the plate (7%) held between a floor and a
 ceiling, rather than fixed, because plates now range from a few hundred pixels
