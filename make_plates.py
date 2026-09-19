@@ -2,110 +2,95 @@
 """
 make_plates.py - turn Strava GPX walks into layered SVG plates.
 
-Run it like this, passing every walk you want in the gallery at once:
+Run it with every walk you want in the gallery, all at once:
 
     python3 make_plates.py walks/*.gpx
 
-Passing them all together matters: the plates share one scale, and the
-script can only work that scale out if it can see every walk.
+Passing them together matters. The plates share one scale for distance and
+one scale for pause size, and the script can only work those out if it can
+see every walk.
 
-Output is one .svg per walk in the plates/ folder, with named layers you
-can switch on and off in Figma.
+Output is one .svg per walk in plates/, with named layers you can switch on
+and off in Figma, plus gallery.json for the web gallery.
 """
 
 import xml.etree.ElementTree as ET
 import datetime
+import json
 import math
 import os
 import random
 import sys
-import json
 
 # ---------------------------------------------------------------------------
-# SETTINGS - these are the numbers you are most likely to want to change.
+# SETTINGS
 # ---------------------------------------------------------------------------
 
-# Colours, straight from your design reference.
-GROUND    = "#f9e278"   # flat yellow background
-BLOCKS    = "#f3b568"   # pale orange abstract blocks
-PATH      = "#e13a3d"   # red walk path
-CAPTION   = "#555555"   # mono grey caption text
+GROUND  = "#f9e278"   # flat yellow background
+BLOCKS  = "#f3b568"   # pale orange abstract blocks
+PATH    = "#e13a3d"   # red walk path
+CAPTION = "#555555"   # mono grey text
+
+FONT = "JetBrains Mono, ui-monospace, monospace"
 
 # The longest walk's longest side becomes this many pixels. Every other
-# walk is then drawn at that same scale, so plate size means distance.
+# walk is drawn at that same scale, so plate size means distance.
 TARGET_LONG_SIDE = 1350
 
-# A GPS fix implying you moved faster than this is treated as an error
-# and dropped. 6 m/s is about 21 km/h - not walking.
-SPIKE_SPEED = 6.0
-
-# If this many fixes in a row look wrong, assume the GPS has genuinely
-# moved rather than that the rest of the walk is an error.
-SPIKE_RUN_LIMIT = 8
-
-# Smoothing. Each point is averaged with its neighbours to take the
-# jitter out of the trace. Bigger number, smoother and shorter line.
+SPIKE_SPEED = 6.0       # m/s; faster than this is a GPS error, not walking
+SPIKE_RUN_LIMIT = 8     # rejections in a row before we trust the new position
 SMOOTH_WINDOW = 5
+DRAW_EVERY_PX = 1.5     # thin the line to roughly this many pixels between points
 
-# Before drawing, thin the line out to roughly this many pixels between
-# points. Anything finer is smaller than a pixel, so it cannot be seen -
-# it only makes the SVG enormous and slow to open in Figma.
-DRAW_EVERY_PX = 1.5
-
-# A pause is: you stayed inside PAUSE_RADIUS metres for at least
-# PAUSE_SECONDS seconds. Distance-based, not speed-based, because on a
-# steep slow walk "trudging" and "standing still" look the same by speed.
+# A pause: stayed inside PAUSE_RADIUS metres for at least PAUSE_SECONDS.
 PAUSE_RADIUS = 10.0
 PAUSE_SECONDS = 120
 
-# Reversals. The path is resampled every RESAMPLE_M metres, and a change
-# of direction sharper than TURN_DEG degrees counts as a reversal.
-# Every one found is drawn - nothing is filtered out.
+# Reversals. Every one found is drawn; nothing is filtered out.
 RESAMPLE_M = 12.0
 TURN_DEG = 85.0
 
-# A break in recording longer than this many seconds is treated as a gap.
-# The path stops and restarts rather than bridging it with a straight line,
-# because a bridged gap looks like route you walked and was not.
+# Recording gaps - Strava switching itself off to save battery.
+# A gap is sorted by how far you got whilst it was off:
+#   moved almost nowhere      -> you were standing still, so it is a pause
+#   moved slowly              -> you walked it, just unrecorded
+#   moved faster than walking -> a vehicle, so not your walk at all
 GAP_SECONDS = 45
+GAP_STILL_M = 100.0
+GAP_WALK_KMH = 3.0
 
-# Margins and the caption band. Your plates now range from a few hundred
-# pixels to well over a thousand, so these are worked out as a share of
-# the plate rather than fixed, then held between a floor and a ceiling.
-# To go back to fixed values, set both numbers in a pair to the same thing.
 MARGIN_SHARE, MARGIN_MIN, MARGIN_MAX = 0.07, 28, 90
-BAND_SHARE,   BAND_MIN,   BAND_MAX   = 0.15, 82, 190
 
-# Captions. Put your own text in captions.json next to this script, like:
-#   {"Walk to mcleodganj": "two hours uphill, mostly standing still"}
-# Any walk not listed falls back to its Strava name.
 CAPTIONS_FILE = "captions.json"
-
 OUT_DIR = "plates"
 
 NS = {"g": "http://www.topografix.com/GPX/1/1"}
 EARTH_R = 6371000.0
 
+# Points are (x, y, time, elevation).
+
 
 # ---------------------------------------------------------------------------
-# Reading and cleaning the GPX
+# Reading and cleaning
 # ---------------------------------------------------------------------------
 
 def read_gpx(path):
-    """Pull the track name and every point out of a Strava GPX file."""
     root = ET.parse(path).getroot()
     name_el = root.find(".//g:trk/g:name", NS)
     name = name_el.text if name_el is not None else os.path.basename(path)
 
     points = []
     for trkpt in root.iterfind(".//g:trkpt", NS):
-        lat = float(trkpt.get("lat"))
-        lon = float(trkpt.get("lon"))
         time_el = trkpt.find("g:time", NS)
         if time_el is None:
             continue
-        stamp = datetime.datetime.fromisoformat(time_el.text.replace("Z", "+00:00"))
-        points.append((lat, lon, stamp))
+        ele_el = trkpt.find("g:ele", NS)
+        points.append((
+            float(trkpt.get("lat")),
+            float(trkpt.get("lon")),
+            datetime.datetime.fromisoformat(time_el.text.replace("Z", "+00:00")),
+            float(ele_el.text) if ele_el is not None else 0.0,
+        ))
 
     if len(points) < 2:
         raise ValueError(f"{path}: not enough points with timestamps")
@@ -113,28 +98,21 @@ def read_gpx(path):
 
 
 def to_metres(points):
-    """Turn latitude/longitude into flat x/y metres.
-
-    Good enough over a few kilometres, which is all a walk covers.
-    x runs east, y runs north.
-    """
+    """Latitude/longitude to flat x/y metres. x east, y north."""
     mean_lat = sum(p[0] for p in points) / len(points)
     squash = math.cos(math.radians(mean_lat))
-    return [
-        (math.radians(lon) * EARTH_R * squash,
-         math.radians(lat) * EARTH_R,
-         stamp)
-        for lat, lon, stamp in points
-    ]
+    return [(math.radians(lon) * EARTH_R * squash,
+             math.radians(lat) * EARTH_R,
+             stamp, ele)
+            for lat, lon, stamp, ele in points]
 
 
 def drop_spikes(track):
-    """Remove fixes that imply impossible speed - GPS errors, not walking.
+    """Remove fixes implying impossible speed.
 
-    Each point is checked against the last point we trusted. If several
-    in a row look wrong, the GPS has probably jumped and come back
-    somewhere new, so we trust the latest one again rather than throwing
-    away the rest of the walk.
+    Each point is checked against the last one we trusted. If several in a
+    row look wrong the GPS has probably jumped and come back somewhere new,
+    so we trust the latest rather than discarding the rest of the walk.
     """
     kept = [track[0]]
     dropped = 0
@@ -142,8 +120,7 @@ def drop_spikes(track):
     for point in track[1:]:
         gap = (point[2] - kept[-1][2]).total_seconds()
         step = math.dist(kept[-1][:2], point[:2])
-        bad = gap <= 0 or step / gap > SPIKE_SPEED
-        if bad and in_a_row < SPIKE_RUN_LIMIT:
+        if (gap <= 0 or step / gap > SPIKE_SPEED) and in_a_row < SPIKE_RUN_LIMIT:
             dropped += 1
             in_a_row += 1
             continue
@@ -152,50 +129,69 @@ def drop_spikes(track):
     return kept, dropped
 
 
-def split_on_gaps(track):
-    """Cut the walk wherever recording stopped for a while.
-
-    Strava pauses on its own, and signal drops in hills. Joining the two
-    ends of such a break draws a straight line across the plate that
-    looks like walking but is not, so each stretch is kept separate.
-    """
-    runs = [[track[0]]]
-    for i in range(1, len(track)):
-        if (track[i][2] - track[i - 1][2]).total_seconds() > GAP_SECONDS:
-            runs.append([])
-        runs[-1].append(track[i])
-    return [run for run in runs if len(run) >= 2]
-
-
 def smooth(track, window=SMOOTH_WINDOW):
-    """Average each point with its neighbours to settle the line down."""
     if window < 2 or len(track) < window:
         return track
     half = window // 2
     out = []
     for i in range(len(track)):
-        lo = max(0, i - half)
-        hi = min(len(track), i + half + 1)
-        chunk = track[lo:hi]
-        out.append((
-            sum(p[0] for p in chunk) / len(chunk),
-            sum(p[1] for p in chunk) / len(chunk),
-            track[i][2],          # keep the original timestamp
-        ))
+        chunk = track[max(0, i - half):min(len(track), i + half + 1)]
+        out.append((sum(p[0] for p in chunk) / len(chunk),
+                    sum(p[1] for p in chunk) / len(chunk),
+                    track[i][2], track[i][3]))
+    return out
+
+
+def resample(track, every):
+    """Take a point every `every` metres, so turns are measured evenly and
+    the drawn line is not finer than a pixel."""
+    out = [track[0]]
+    run = 0.0
+    for i in range(1, len(track)):
+        run += math.dist(track[i - 1][:2], track[i][:2])
+        if run >= every:
+            out.append(track[i])
+            run = 0.0
+    if out[-1] is not track[-1]:
+        out.append(track[-1])
     return out
 
 
 # ---------------------------------------------------------------------------
-# Working out what happened on the walk
+# Recording gaps
+# ---------------------------------------------------------------------------
+
+def classify_gap(before, after):
+    """Work out what happened whilst Strava was switched off."""
+    seconds = (after[2] - before[2]).total_seconds()
+    metres = math.dist(before[:2], after[:2])
+    if metres < GAP_STILL_M:
+        return "still", seconds, metres
+    kmh = metres / seconds * 3.6 if seconds > 0 else 999
+    return ("walked" if kmh < GAP_WALK_KMH else "vehicle"), seconds, metres
+
+
+def split_on_gaps(track):
+    """Cut the walk at every break in recording, and say what each break was."""
+    runs = [[track[0]]]
+    gaps = []
+    for i in range(1, len(track)):
+        if (track[i][2] - track[i - 1][2]).total_seconds() > GAP_SECONDS:
+            kind, seconds, metres = classify_gap(track[i - 1], track[i])
+            gaps.append({"kind": kind, "seconds": seconds, "metres": metres,
+                         "from": track[i - 1], "to": track[i]})
+            runs.append([])
+        runs[-1].append(track[i])
+    return [r for r in runs if len(r) >= 2], gaps
+
+
+# ---------------------------------------------------------------------------
+# What happened on the walk
 # ---------------------------------------------------------------------------
 
 def find_pauses(track):
-    """Find the places you stopped.
-
-    Walks forward looking for a run of points that all stay inside
-    PAUSE_RADIUS of where the run started. If that run lasted at least
-    PAUSE_SECONDS, it counts as a pause.
-    """
+    """Places you stopped: a run of points all within PAUSE_RADIUS of where
+    the run started, lasting at least PAUSE_SECONDS."""
     pauses = []
     i = 0
     while i < len(track):
@@ -204,66 +200,92 @@ def find_pauses(track):
             j += 1
         seconds = (track[j][2] - track[i][2]).total_seconds()
         if seconds >= PAUSE_SECONDS:
-            xs = [p[0] for p in track[i:j + 1]]
-            ys = [p[1] for p in track[i:j + 1]]
-            pauses.append({
-                "x": sum(xs) / len(xs),
-                "y": sum(ys) / len(ys),
-                "seconds": seconds,
-            })
+            block = track[i:j + 1]
+            pauses.append({"x": sum(p[0] for p in block) / len(block),
+                           "y": sum(p[1] for p in block) / len(block),
+                           "seconds": seconds})
             i = j + 1
         else:
             i += 1
     return pauses
 
 
-def resample(track, every=RESAMPLE_M):
-    """Take a point every `every` metres, so turns are measured evenly.
-
-    Without this, a slow uphill section has far more GPS points than a
-    fast flat one and would appear to contain far more turns.
-    """
-    out = [track[0]]
-    run = 0.0
-    for i in range(1, len(track)):
-        run += math.dist(track[i - 1][:2], track[i][:2])
-        if run >= every:
-            out.append(track[i])
-            run = 0.0
-    return out
+def all_pauses(runs, gaps):
+    """Recorded pauses, plus gaps where you barely moved - those were rests
+    too, Strava just wasn't watching."""
+    found = [p for run in runs for p in find_pauses(run)]
+    for gap in gaps:
+        if gap["kind"] == "still":
+            found.append({"x": (gap["from"][0] + gap["to"][0]) / 2,
+                          "y": (gap["from"][1] + gap["to"][1]) / 2,
+                          "seconds": gap["seconds"]})
+    return found
 
 
-def find_reversals(track):
-    """Find every sharp change of direction. Nothing is filtered out."""
-    marks = resample(track)
+def find_reversals(runs):
+    """Every sharp change of direction. Nothing is filtered out."""
     found = []
-    for i in range(2, len(marks)):
-        before = math.atan2(marks[i - 1][1] - marks[i - 2][1],
-                            marks[i - 1][0] - marks[i - 2][0])
-        after = math.atan2(marks[i][1] - marks[i - 1][1],
-                           marks[i][0] - marks[i - 1][0])
-        turn = abs(math.degrees(after - before)) % 360
-        if turn > 180:
-            turn = 360 - turn
-        if turn > TURN_DEG:
-            found.append({"x": marks[i - 1][0], "y": marks[i - 1][1], "turn": turn})
+    for run in runs:
+        marks = resample(run, RESAMPLE_M)
+        for i in range(2, len(marks)):
+            before = math.atan2(marks[i - 1][1] - marks[i - 2][1],
+                                marks[i - 1][0] - marks[i - 2][0])
+            after = math.atan2(marks[i][1] - marks[i - 1][1],
+                               marks[i][0] - marks[i - 1][0])
+            turn = abs(math.degrees(after - before)) % 360
+            if turn > 180:
+                turn = 360 - turn
+            if turn > TURN_DEG:
+                found.append({"x": marks[i - 1][0], "y": marks[i - 1][1]})
     return found
 
 
 def pace_segments(track):
-    """Speed for each step of the walk, in metres per second."""
-    segments = []
+    out = []
     for i in range(1, len(track)):
         gap = (track[i][2] - track[i - 1][2]).total_seconds()
-        if gap <= 0:
-            continue
-        step = math.dist(track[i - 1][:2], track[i][:2])
-        segments.append((track[i - 1][:2], track[i][:2], step / gap))
-    return segments
+        if gap > 0:
+            out.append((track[i - 1][:2], track[i][:2],
+                        math.dist(track[i - 1][:2], track[i][:2]) / gap))
+    return out
 
 
-def total_distance(track):
-    return sum(math.dist(track[i - 1][:2], track[i][:2]) for i in range(1, len(track)))
+def run_distance(run):
+    return sum(math.dist(run[i - 1][:2], run[i][:2]) for i in range(1, len(run)))
+
+
+def walked_distance(runs, gaps):
+    """Distance you actually walked. Unrecorded walking counts; a vehicle
+    does not."""
+    total = sum(run_distance(r) for r in runs)
+    total += sum(g["metres"] for g in gaps if g["kind"] == "walked")
+    return total
+
+
+def elevation_profile(runs, gaps):
+    """Height against distance walked, for drawing the climb.
+
+    A gap you walked is bridged with a straight line, because you did climb
+    it. A gap you rode is skipped entirely - it is not your walk.
+    """
+    series = []
+    covered = 0.0
+    for index, run in enumerate(runs):
+        if index > 0:
+            gap = gaps[index - 1] if index - 1 < len(gaps) else None
+            if gap and gap["kind"] == "walked":
+                covered += gap["metres"]
+                series.append((covered, run[0][3]))
+        for i, point in enumerate(run):
+            if i > 0:
+                covered += math.dist(run[i - 1][:2], point[:2])
+            series.append((covered, point[3]))
+    return series
+
+
+def climb(series):
+    return sum(max(0.0, series[i][1] - series[i - 1][1])
+               for i in range(1, len(series)))
 
 
 # ---------------------------------------------------------------------------
@@ -274,93 +296,86 @@ def clamp(value, low, high):
     return max(low, min(high, value))
 
 
-def make_blocks(pauses, bounds, seed):
-    """Build the abstract background blocks from the walk's own pauses.
-
-    One block per pause, bigger the longer you stood there, placed near
-    where it happened but nudged and rotated so it reads as abstract
-    rather than as a map marker.
-    """
-    if not pauses:
-        return []
-
-    dice = random.Random(seed)
-    longest = max(p["seconds"] for p in pauses)
-    min_x, min_y, max_x, max_y = bounds
-    span = max(max_x - min_x, max_y - min_y)
-
-    blocks = []
-    for pause in pauses:
-        share = pause["seconds"] / longest          # 0 to 1
-        size = span * (0.06 + 0.16 * share)         # metres
-        blocks.append({
-            "x": pause["x"] + dice.uniform(-0.35, 0.35) * size,
-            "y": pause["y"] + dice.uniform(-0.35, 0.35) * size,
-            "w": size * dice.uniform(0.7, 1.5),
-            "h": size * dice.uniform(0.7, 1.5),
-            "angle": dice.uniform(-18, 18),
-        })
-    return blocks
-
-
-def pause_radius(seconds, longest_pause, stroke):
-    """How big to draw a pause. Area grows with time, which is how the eye
-    reads size, and the scale is shared across every plate."""
-    share = min(1.0, seconds / longest_pause) if longest_pause else 0.0
+def pause_radius(seconds, longest, stroke):
+    """Area grows with time, because that is how the eye reads size. The
+    scale is shared across every plate, so the legend is true."""
+    share = min(1.0, seconds / longest) if longest else 0.0
     return stroke * (0.8 + 2.2 * math.sqrt(share))
 
 
-def legend_steps(longest_pause):
-    """Pick up to three round durations to label in the legend."""
-    minutes = longest_pause / 60
-    options = [2, 5, 10, 15, 30, 45, 60, 90, 120]
-    usable = [m for m in options if m <= minutes]
-    if not usable:
-        return [round(minutes)]
-    return usable[-3:] if len(usable) >= 3 else usable
+def legend_steps(longest):
+    minutes = longest / 60
+    usable = [m for m in (2, 5, 10, 15, 30, 45, 60, 90, 120) if m <= minutes]
+    return usable[-3:] if usable else [max(1, round(minutes))]
+
+
+def say_distance(metres):
+    return f"{metres:.0f} m" if metres < 1000 else f"{metres/1000:.2f} km"
+
+
+def make_blocks(pauses, span, seed):
+    """Abstract background blocks, one per pause, bigger the longer you
+    stood there. Nudged and rotated so they read as abstract rather than as
+    map markers."""
+    if not pauses:
+        return []
+    dice = random.Random(seed)
+    longest = max(p["seconds"] for p in pauses)
+    out = []
+    for pause in pauses:
+        size = span * (0.06 + 0.16 * (pause["seconds"] / longest))
+        out.append({"x": pause["x"] + dice.uniform(-0.35, 0.35) * size,
+                    "y": pause["y"] + dice.uniform(-0.35, 0.35) * size,
+                    "w": size * dice.uniform(0.7, 1.5),
+                    "h": size * dice.uniform(0.7, 1.5),
+                    "angle": dice.uniform(-18, 18)})
+    return out
+
+
+def escape(text):
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
-    """Do the whole job for one walk and return the finished SVG text."""
     _, raw = read_gpx(gpx_path)
-    track = to_metres(raw)
-    track, dropped = drop_spikes(track)
+    track, dropped = drop_spikes(to_metres(raw))
+    runs, gaps = split_on_gaps(track)
 
-    # Pauses and reversals are read from the cleaned-but-unsmoothed track,
-    # because smoothing pulls points towards each other and would invent
-    # stillness that never happened.
-    pauses = find_pauses(track)
-    reversals = find_reversals(track)
+    # Pauses and reversals read from the cleaned but unsmoothed track;
+    # smoothing pulls points together and would invent stillness.
+    pauses = all_pauses(runs, gaps)
+    reversals = find_reversals(runs)
+    profile = elevation_profile(runs, gaps)
+    distance = walked_distance(runs, gaps)
+    ascent = climb(profile)
 
     step = max(metres_per_pixel * DRAW_EVERY_PX, 1.0)
-    runs = [resample(smooth(run), every=step) for run in split_on_gaps(track)]
-    runs = [run for run in runs if len(run) >= 2]
-    paces = [seg for run in runs for seg in pace_segments(run)]
+    drawn = [resample(smooth(run), step) for run in runs]
+    drawn = [run for run in drawn if len(run) >= 2]
+    paces = [seg for run in drawn for seg in pace_segments(run)]
 
-    xs = [p[0] for run in runs for p in run]
-    ys = [p[1] for run in runs for p in run]
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
+    xs = [p[0] for run in drawn for p in run]
+    ys = [p[1] for run in drawn for p in run]
+    min_x, max_x, min_y, max_y = min(xs), max(xs), min(ys), max(ys)
     width_m, height_m = max_x - min_x, max_y - min_y
 
-    # Frame comes out of the walk's own footprint at the shared scale.
     art_w = width_m / metres_per_pixel
     art_h = height_m / metres_per_pixel
     long_side = max(art_w, art_h)
 
     margin = clamp(long_side * MARGIN_SHARE, MARGIN_MIN, MARGIN_MAX)
-
-    # Work out the type sizes first, then make the caption band tall
-    # enough to actually hold the caption and the legend. Sizing it as a
-    # flat share of the plate clipped the legend off short plates.
     size = clamp(long_side / 42, 13, 30)
     small = size * 0.72
     stroke = clamp(long_side / 115, 3.5, 14)
+    dot = stroke * 1.7
+
     steps = legend_steps(longest_pause)
     widest = max(pause_radius(m * 60, longest_pause, stroke) for m in steps)
+    profile_h = size * 3.2
 
-    needed = size * 1.6 + small * 2.6 + widest * 2 + small * 1.8 + margin * 0.5
-    band = max(clamp(long_side * BAND_SHARE, BAND_MIN, BAND_MAX), needed)
+    # The band is measured from what it has to hold, so nothing is clipped.
+    band = (size * 1.6 + size * 0.9 + profile_h + small * 2.4
+            + widest * 2 + small * 2.0 + margin * 0.6)
 
     plate_w = art_w + margin * 2
     plate_h = art_h + margin * 2 + band
@@ -370,123 +385,147 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         return (margin + (x - min_x) / metres_per_pixel,
                 margin + (max_y - y) / metres_per_pixel)
 
-    dot = stroke * 1.7
-
     parts = []
     add = parts.append
 
     add(f'<svg xmlns="http://www.w3.org/2000/svg" width="{plate_w:.0f}" '
         f'height="{plate_h:.0f}" viewBox="0 0 {plate_w:.2f} {plate_h:.2f}">')
-    add(f'  <!-- {name}: {total_distance(track)/1000:.2f} km, '
+    add(f'  <!-- {name}: {say_distance(distance)} walked, {ascent:.0f} m climbed, '
         f'{len(pauses)} pauses, {len(reversals)} reversals, '
-        f'{dropped} GPS spikes dropped, {metres_per_pixel:.3f} m per pixel -->')
+        f'{len(gaps)} recording gaps, {dropped} GPS spikes dropped, '
+        f'{metres_per_pixel:.3f} m per pixel -->')
 
-    # background
     add('  <g id="background">')
     add(f'    <rect x="0" y="0" width="{plate_w:.2f}" height="{plate_h:.2f}" fill="{GROUND}"/>')
     add('  </g>')
 
-    # blocks
     add('  <g id="blocks">')
-    for block in make_blocks(pauses, (min_x, min_y, max_x, max_y), name):
+    for block in make_blocks(pauses, max(width_m, height_m), name):
         bx, by = place(block["x"], block["y"])
-        bw = block["w"] / metres_per_pixel
-        bh = block["h"] / metres_per_pixel
+        bw, bh = block["w"] / metres_per_pixel, block["h"] / metres_per_pixel
         add(f'    <rect x="{bx - bw/2:.2f}" y="{by - bh/2:.2f}" '
             f'width="{bw:.2f}" height="{bh:.2f}" fill="{BLOCKS}" '
             f'transform="rotate({block["angle"]:.1f} {bx:.2f} {by:.2f})"/>')
     add('  </g>')
 
-    # pace - hidden by default
     add('  <g id="pace" display="none">')
     if paces:
         fastest = max(p[2] for p in paces) or 1.0
         for start, end, speed in paces:
             sx, sy = place(*start)
             ex, ey = place(*end)
-            w = stroke * (0.35 + 1.3 * (speed / fastest))
             add(f'    <line x1="{sx:.2f}" y1="{sy:.2f}" x2="{ex:.2f}" y2="{ey:.2f}" '
-                f'stroke="{PATH}" stroke-width="{w:.2f}" stroke-linecap="round"/>')
+                f'stroke="{PATH}" stroke-width="{stroke*(0.35+1.3*(speed/fastest)):.2f}" '
+                f'stroke-linecap="round"/>')
     add('  </g>')
 
-    # path - one polyline per unbroken stretch of recording
+    # Gaps you walked but did not record: dotted, because you were there.
+    # Gaps you rode are not drawn at all.
+    add('  <g id="gaps">')
+    for gap in gaps:
+        if gap["kind"] != "walked":
+            continue
+        fx, fy = place(gap["from"][0], gap["from"][1])
+        tx, ty = place(gap["to"][0], gap["to"][1])
+        add(f'    <line x1="{fx:.2f}" y1="{fy:.2f}" x2="{tx:.2f}" y2="{ty:.2f}" '
+            f'stroke="{PATH}" stroke-width="{stroke*0.45:.2f}" stroke-linecap="round" '
+            f'stroke-dasharray="{stroke*0.1:.2f} {stroke*1.5:.2f}" opacity="0.75"/>')
+    add('  </g>')
+
     add('  <g id="path">')
-    for run in runs:
+    for index, run in enumerate(drawn):
         points = " ".join(f"{x:.2f},{y:.2f}"
                           for x, y in (place(p[0], p[1]) for p in run))
-        add(f'    <polyline points="{points}" fill="none" stroke="{PATH}" '
-            f'stroke-width="{stroke:.2f}" stroke-linecap="round" '
+        add(f'    <polyline id="stretch-{index+1}" points="{points}" fill="none" '
+            f'stroke="{PATH}" stroke-width="{stroke:.2f}" stroke-linecap="round" '
             f'stroke-linejoin="round"/>')
     add('  </g>')
 
-    # pauses - sized against the longest pause across ALL walks, so a
-    # circle of a given size means the same thing on every plate and the
-    # legend below is true.
     add('  <g id="pauses">')
     for pause in pauses:
         px, py = place(pause["x"], pause["y"])
-        r = pause_radius(pause["seconds"], longest_pause, stroke)
-        add(f'    <circle cx="{px:.2f}" cy="{py:.2f}" r="{r:.2f}" fill="none" '
-            f'stroke="{PATH}" stroke-width="{stroke*0.5:.2f}"/>')
+        add(f'    <circle cx="{px:.2f}" cy="{py:.2f}" '
+            f'r="{pause_radius(pause["seconds"], longest_pause, stroke):.2f}" '
+            f'fill="none" stroke="{PATH}" stroke-width="{stroke*0.5:.2f}"/>')
     add('  </g>')
 
-    # reversals - hidden by default
     add('  <g id="reversals" display="none">')
     for turn in reversals:
         tx, ty = place(turn["x"], turn["y"])
         add(f'    <circle cx="{tx:.2f}" cy="{ty:.2f}" r="{dot*0.45:.2f}" fill="{PATH}"/>')
     add('  </g>')
 
-    # endpoints
-    start_x, start_y = place(runs[0][0][0], runs[0][0][1])
-    end_x, end_y = place(runs[-1][-1][0], runs[-1][-1][1])
+    start_x, start_y = place(drawn[0][0][0], drawn[0][0][1])
+    end_x, end_y = place(drawn[-1][-1][0], drawn[-1][-1][1])
     add('  <g id="endpoints">')
     add(f'    <circle cx="{start_x:.2f}" cy="{start_y:.2f}" r="{dot:.2f}" fill="{PATH}"/>')
     add(f'    <circle cx="{end_x:.2f}" cy="{end_y:.2f}" r="{dot:.2f}" fill="{PATH}"/>')
     add('  </g>')
 
-    # caption
     base = plate_h - band + size * 1.6
     add('  <g id="caption">')
-    add(f'    <text x="{margin:.2f}" y="{base:.2f}" '
-        f'font-family="monospace" font-size="{size:.1f}" fill="{CAPTION}">'
-        f'{escape(caption)}</text>')
+    add(f'    <text x="{margin:.2f}" y="{base:.2f}" font-family="{FONT}" '
+        f'font-size="{size:.1f}" fill="{CAPTION}">{escape(caption)}</text>')
     add('  </g>')
 
-    # legend - what the pause circles mean. Shared across every plate.
+    # The climb, drawn rather than written. Across is distance walked,
+    # up is height. Same yellow ground, so it reads as part of the plate.
+    add('  <g id="elevation">')
+    top = base + size * 0.9
+    left, right = margin, plate_w - margin
+    if len(profile) > 1:
+        far = profile[-1][0] or 1.0
+        lows = [h for _, h in profile]
+        low, high = min(lows), max(lows)
+        rise = (high - low) or 1.0
+        shape = [(left + (d / far) * (right - left),
+                  top + profile_h - ((h - low) / rise) * profile_h)
+                 for d, h in profile]
+        thinned = shape[:: max(1, len(shape) // 600)] + [shape[-1]]
+        line = " ".join(f"{x:.2f},{y:.2f}" for x, y in thinned)
+        add(f'    <polygon points="{left:.2f},{top+profile_h:.2f} {line} '
+            f'{right:.2f},{top+profile_h:.2f}" fill="{BLOCKS}" opacity="0.85"/>')
+        add(f'    <polyline points="{line}" fill="none" stroke="{PATH}" '
+            f'stroke-width="{stroke*0.4:.2f}" stroke-linejoin="round"/>')
+    add('  </g>')
+
+    # Distance under the profile on the left, pause legend on the right.
+    row_text = top + profile_h + small * 2.3
+    add('  <g id="figures">')
+    add(f'    <text x="{left:.2f}" y="{row_text:.2f}" font-family="{FONT}" '
+        f'font-size="{small:.1f}" fill="{CAPTION}">{say_distance(distance)} walked</text>')
+    add('  </g>')
+
     add('  <g id="legend">')
-    x = margin + widest
-    row = base + small * 2.5 + widest
-    add(f'    <text x="{margin:.2f}" y="{base + small * 1.9:.2f}" '
-        f'font-family="monospace" font-size="{small:.1f}" fill="{CAPTION}">'
-        f'stood still</text>')
+    spacing = widest * 2 + small * 3.4
+    legend_w = spacing * (len(steps) - 1) + widest * 2
+    x = right - legend_w + widest
+    row = row_text + small * 0.9 + widest
+    add(f'    <text x="{right:.2f}" y="{row_text:.2f}" font-family="{FONT}" '
+        f'font-size="{small:.1f}" fill="{CAPTION}" text-anchor="end">stood still</text>')
     for mins in steps:
-        r = pause_radius(mins * 60, longest_pause, stroke)
-        add(f'    <circle cx="{x:.2f}" cy="{row:.2f}" r="{r:.2f}" fill="none" '
+        add(f'    <circle cx="{x:.2f}" cy="{row:.2f}" '
+            f'r="{pause_radius(mins*60, longest_pause, stroke):.2f}" fill="none" '
             f'stroke="{CAPTION}" stroke-width="{stroke*0.4:.2f}"/>')
-        add(f'    <text x="{x:.2f}" y="{row + widest + small * 1.15:.2f}" '
-            f'font-family="monospace" font-size="{small:.1f}" fill="{CAPTION}" '
+        add(f'    <text x="{x:.2f}" y="{row + widest + small*1.15:.2f}" '
+            f'font-family="{FONT}" font-size="{small:.1f}" fill="{CAPTION}" '
             f'text-anchor="middle">{mins} min</text>')
-        x += widest * 2 + small * 3.2
+        x += spacing
     add('  </g>')
 
     add('</svg>')
 
-    stats = {
-        "runs": len(runs),
-        "name": name,
-        "km": total_distance(track) / 1000,
-        "footprint": (width_m, height_m),
-        "plate": (plate_w, plate_h),
-        "pauses": len(pauses),
-        "reversals": len(reversals),
-        "dropped": dropped,
+    kinds = {}
+    for gap in gaps:
+        kinds[gap["kind"]] = kinds.get(gap["kind"], 0) + 1
+
+    return "\n".join(parts), {
+        "name": name, "distance": distance, "ascent": ascent,
+        "footprint": (width_m, height_m), "plate": (plate_w, plate_h),
+        "pauses": len(pauses), "reversals": len(reversals),
+        "stretches": len(drawn), "gaps": kinds, "dropped": dropped,
+        "caption": caption,
     }
-    return "\n".join(parts), stats
-
-
-def escape(text):
-    return (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
 
 # ---------------------------------------------------------------------------
@@ -499,20 +538,16 @@ def main(paths):
 
     # First pass: measure every walk, so one scale can cover them all.
     biggest = 0.0
-    for path in paths:
-        _, raw = read_gpx(path)
-        track, _ = drop_spikes(to_metres(raw))
-        track = smooth(track)
-        xs = [p[0] for p in track]
-        ys = [p[1] for p in track]
-        biggest = max(biggest, max(xs) - min(xs), max(ys) - min(ys))
-
-    # The longest pause anywhere sets the pause scale for every plate.
     longest_pause = 1.0
     for path in paths:
         _, raw = read_gpx(path)
         track, _ = drop_spikes(to_metres(raw))
-        for pause in find_pauses(track):
+        runs, gaps = split_on_gaps(track)
+        points = [p for run in runs for p in smooth(run)]
+        biggest = max(biggest,
+                      max(p[0] for p in points) - min(p[0] for p in points),
+                      max(p[1] for p in points) - min(p[1] for p in points))
+        for pause in all_pauses(runs, gaps):
             longest_pause = max(longest_pause, pause["seconds"])
 
     metres_per_pixel = biggest / TARGET_LONG_SIDE
@@ -522,29 +557,39 @@ def main(paths):
           f"- this sets the pause circle scale on every plate\n")
 
     os.makedirs(OUT_DIR, exist_ok=True)
+    gallery = []
 
-    # Second pass: draw them.
     for path in paths:
         name, _ = read_gpx(path)
         svg, stats = build_plate(name, path, metres_per_pixel, longest_pause,
                                  captions.get(name, name))
         safe = "".join(c if c.isalnum() or c in " -_" else "" for c in name)
-        out = os.path.join(OUT_DIR, safe.strip().replace(" ", "_") + ".svg")
-        with open(out, "w") as handle:
+        filename = safe.strip().replace(" ", "_") + ".svg"
+        with open(os.path.join(OUT_DIR, filename), "w") as handle:
             handle.write(svg)
 
         w, h = stats["plate"]
-        shape = "portrait" if h > w else "landscape"
-        print(f"{stats['name']}")
-        print(f"  {stats['km']:.2f} km, footprint "
-              f"{stats['footprint'][0]:.0f} x {stats['footprint'][1]:.0f} m")
-        print(f"  plate {w:.0f} x {h:.0f} px ({shape})")
+        print(stats["name"])
+        print(f"  {say_distance(stats['distance'])} walked, "
+              f"{stats['ascent']:.0f} m climbed")
+        print(f"  plate {w:.0f} x {h:.0f} px "
+              f"({'portrait' if h > w else 'landscape'})")
         print(f"  {stats['pauses']} pauses -> {stats['pauses']} blocks, "
               f"{stats['reversals']} reversals, {stats['dropped']} spikes dropped")
-        if stats["runs"] > 1:
-            print(f"  path broken into {stats['runs']} stretches "
-                  f"by {stats['runs'] - 1} recording gaps")
-        print(f"  written to {out}\n")
+        if stats["gaps"]:
+            told = ", ".join(f"{n} {kind}" for kind, n in sorted(stats["gaps"].items()))
+            print(f"  {stats['stretches']} stretches, recording gaps: {told}")
+        print(f"  written to {OUT_DIR}/{filename}\n")
+
+        gallery.append({"name": stats["name"], "file": filename,
+                        "caption": stats["caption"],
+                        "distance": round(stats["distance"]),
+                        "ascent": round(stats["ascent"]),
+                        "width": round(w), "height": round(h)})
+
+    with open(os.path.join(OUT_DIR, "gallery.json"), "w") as handle:
+        json.dump(gallery, handle, indent=2)
+    print(f"Gallery index written to {OUT_DIR}/gallery.json")
 
 
 if __name__ == "__main__":

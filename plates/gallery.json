@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Walk to mcleodganj",
+    "file": "Walk_to_mcleodganj.svg",
+    "caption": "Walk to mcleodganj",
+    "distance": 4199,
+    "ascent": 177,
+    "width": 613,
+    "height": 1282
+  },
+  {
+    "name": "Walk to naddi",
+    "file": "Walk_to_naddi.svg",
+    "caption": "Walk to naddi",
+    "distance": 10745,
+    "ascent": 416,
+    "width": 1530,
+    "height": 1149
+  }
+]

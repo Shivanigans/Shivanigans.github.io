@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: #f9e278;
+    --blocks: #f3b568;
+    --path: #e13a3d;
+    --ink: #555555;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 48px 16px 96px;
+    background: var(--ground);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    color: var(--ink);
+  }
+  header { max-width: 900px; margin: 0 auto 56px; }
+  h1 { font-size: 1.4rem; font-weight: 500; margin: 0 0 12px; }
+  header p { margin: 0; font-size: 0.85rem; line-height: 1.7; max-width: 60ch; }
+  .gallery { max-width: 900px; margin: 0 auto; display: flex;
+             flex-direction: column; gap: 72px; align-items: flex-start; }
+  .plate { width: 100%; cursor: pointer; border: 0; padding: 0;
+           background: none; font: inherit; color: inherit; text-align: left;
+           display: block; }
+  .plate svg { width: 100%; height: auto; display: block; }
+  .plate .hint { font-size: 0.75rem; opacity: 0.55; margin-top: 10px; }
+  .plate:focus-visible { outline: 2px solid var(--path); outline-offset: 6px; }
+  .loading { font-size: 0.8rem; opacity: 0.6; }
+  /* Whilst a walk is replaying, everything but the line steps back so the
+     movement itself is what you watch. */
+  svg.replaying #blocks, svg.replaying #pauses,
+  svg.replaying #gaps, svg.replaying #elevation { opacity: 0.28; }
+  svg.replaying #blocks, svg.replaying #pauses,
+  svg.replaying #gaps, svg.replaying #elevation,
+  svg #endpoints circle { transition: opacity 0.4s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Walks</h1>
+  <p>Each walk drawn as it was recorded. Every plate shares one scale, so a
+     bigger plate means a longer walk. Click a walk to watch it happen.</p>
+</header>
+
+<div class="gallery" id="gallery">
+  <p class="loading">Loading walks…</p>
+</div>
+
+<script>
+const GALLERY = "plates/gallery.json";
+
+// How long a replay lasts. Longer walks take longer, but not in
+// proportion, or naddi would run for a minute whilst a short walk blinks.
+function replaySeconds(metres) {
+  return Math.min(9, 2.4 + Math.sqrt(metres) / 26);
+}
+
+async function build() {
+  const holder = document.getElementById("gallery");
+  let walks;
+  try {
+    walks = await (await fetch(GALLERY)).json();
+  } catch (err) {
+    holder.innerHTML = '<p class="loading">Could not load plates/gallery.json — ' +
+      'run make_plates.py first.</p>';
+    return;
+  }
+
+  // Keep the shared scale on screen: the widest plate fills the column and
+  // the rest stay proportional to it, so you can still compare by eye.
+  const widest = Math.max(...walks.map(w => w.width));
+  holder.innerHTML = "";
+
+  for (const walk of walks) {
+    const card = document.createElement("button");
+    card.className = "plate";
+    card.style.width = (walk.width / widest * 100) + "%";
+    card.innerHTML = '<p class="loading">' + walk.name + '…</p>';
+    holder.appendChild(card);
+
+    const markup = await (await fetch("plates/" + walk.file)).text();
+    card.innerHTML = markup + '<p class="hint">click to replay</p>';
+
+    const svg = card.querySelector("svg");
+    svg.removeAttribute("width");
+    svg.removeAttribute("height");
+    card.addEventListener("click", () => replay(svg, walk));
+  }
+}
+
+function replay(svg, walk) {
+  const strokes = [...svg.querySelectorAll("#path polyline")];
+  if (!strokes.length || svg.dataset.running === "yes") return;
+  svg.dataset.running = "yes";
+  svg.classList.add("replaying");
+
+  const dots = [...svg.querySelectorAll("#endpoints circle")];
+  const [startDot, endDot] = dots;
+  if (endDot) endDot.style.opacity = "0";
+
+  // Share the time across the stretches by how long each one is, so the
+  // line moves at a steady pace rather than racing the short stretches.
+  const lengths = strokes.map(s => s.getTotalLength());
+  const total = lengths.reduce((a, b) => a + b, 0) || 1;
+  const seconds = replaySeconds(walk.distance);
+
+  strokes.forEach((stroke, i) => {
+    stroke.style.transition = "none";
+    stroke.style.strokeDasharray = lengths[i];
+    stroke.style.strokeDashoffset = lengths[i];
+  });
+  void svg.getBoundingClientRect();   // make the browser apply that now
+
+  let elapsed = 0;
+  strokes.forEach((stroke, i) => {
+    const slice = seconds * (lengths[i] / total);
+    stroke.style.transition =
+      `stroke-dashoffset ${slice}s linear ${elapsed}s`;
+    stroke.style.strokeDashoffset = "0";
+    elapsed += slice;
+  });
+
+  window.setTimeout(() => {
+    svg.classList.remove("replaying");
+    if (endDot) endDot.style.opacity = "1";
+    strokes.forEach(stroke => {
+      stroke.style.transition = "none";
+      stroke.style.strokeDasharray = "";
+      stroke.style.strokeDashoffset = "";
+    });
+    svg.dataset.running = "no";
+  }, (elapsed + 0.45) * 1000);
+}
+
+build();
+</script>
+
+</body>
+</html>
