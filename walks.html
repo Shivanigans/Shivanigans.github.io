@@ -31,7 +31,7 @@
     font-size: 15px;
     line-height: 1.6;
   }
-  .inset { max-width: 1240px; margin: 0 auto; padding-inline: var(--gutter); }
+  .inset { max-width: 1320px; margin: 0 auto; padding-inline: var(--gutter); }
 
   header { padding-block: clamp(48px, 8vw, 104px) clamp(32px, 5vw, 64px); }
   h1 {
@@ -111,6 +111,11 @@ const GALLERY = "plates/gallery.json";
 // true proportion to it, so the shared scale still reads on screen.
 const WIDEST_CARD = 720;
 
+// Below this, a card's caption renders too small to read, because the
+// whole plate scales together. Cards at the floor are drawn slightly
+// larger than truth - the comparison holds above it, not below.
+const MIN_CARD = 380;
+
 function replaySeconds(metres) {
   return Math.min(9, 2.4 + Math.sqrt(metres) / 26);
 }
@@ -154,8 +159,9 @@ async function build() {
   for (const walk of walks) {
     const card = document.createElement("button");
     card.className = "plate";
-    card.style.setProperty("--card",
-      Math.round(walk.width / widest * WIDEST_CARD) + "px");
+    const wide = Math.max(MIN_CARD,
+                          Math.round(walk.width / widest * WIDEST_CARD));
+    card.style.setProperty("--card", wide + "px");
     card.setAttribute("aria-label", "Replay " + walk.name);
     card.innerHTML = '<p class="status">' + walk.name + '…</p>';
     holder.appendChild(card);

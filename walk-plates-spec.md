@@ -179,9 +179,15 @@ legend cannot be clipped off a short plate.
 
 ## The gallery
 
-`walks.html` shows every plate and replays a walk from start to end when
-clicked. Plate widths stay proportional on screen, so the shared scale still
-reads. It loads `plates/gallery.json`, which the script writes.
+`walks.html` shows every plate as a card on a pale sage ground, inset from
+the sides, and replays a walk from start to end when clicked. It loads
+`plates/gallery.json`, which the script writes.
+
+Cards are sized from their own plate, so the shared scale survives on screen.
+There is a floor of 380px, though: below that a card's caption renders too
+small to read, because the whole plate scales together. Cards at the floor
+are drawn slightly larger than truth, so the comparison holds above it and
+not below. mcleodganj sits at the floor.
 
 Each plate is a standalone file carrying the same layer names, so inlining
 several into one page collides their ids. The page renames them per plate on
