@@ -8,91 +8,97 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  /* This page commits to one visual world on purpose: the plates' own
-     flat yellow ground, in both themes. Every colour is painted
-     explicitly so it never borrows the host's. */
+  /* One deliberate visual world, taken from the reference: a pale sage
+     ground with the yellow plates sitting on it. Every colour is painted
+     explicitly so the page never borrows the host's theme. */
   :root {
-    --ground: #f9e278;
-    --blocks: #f3b568;
-    --path:   #e13a3d;
-    --ink:    #4a4a44;
-    --faint:  #8a8270;
+    --page:    #efefdf;
+    --ink:     #565658;
+    --rule:    #1b1b18;
+    --ground:  #f9e278;
+    --blocks:  #f3b568;
+    --path:    #e13a3d;
+    --caption: #686136;
+    --gutter:  clamp(16px, 5vw, 72px);
     color-scheme: light;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    padding-block: 56px 112px;
-    padding-inline: 16px;
-    background: var(--ground);
+    background: var(--page);
     color: var(--ink);
     font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 14px;
-    line-height: 1.7;
+    font-size: 15px;
+    line-height: 1.6;
   }
-  .wrap { max-width: 900px; margin: 0 auto; }
-  header { margin-bottom: 64px; }
-  .eyebrow {
-    font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--faint); margin: 0 0 14px;
-  }
+  .inset { max-width: 1240px; margin: 0 auto; padding-inline: var(--gutter); }
+
+  header { padding-block: clamp(48px, 8vw, 104px) clamp(32px, 5vw, 64px); }
   h1 {
-    font-size: clamp(1.5rem, 4vw, 2.1rem); font-weight: 500;
-    margin: 0 0 18px; text-wrap: balance; letter-spacing: -0.01em;
+    font-size: clamp(3rem, 11vw, 6.5rem);
+    font-weight: 400; letter-spacing: -0.02em; line-height: 1;
+    margin: 0 0 clamp(20px, 3vw, 36px);
   }
-  header p { margin: 0 0 10px; max-width: 62ch; font-size: 0.85rem; }
+  .standfirst {
+    font-size: clamp(1rem, 2.2vw, 1.5rem);
+    line-height: 1.5; margin: 0; max-width: 24ch;
+    text-wrap: balance;
+  }
+  /* The rule runs the full width whilst the words stay inset, as in the
+     reference. */
+  .divider { border: 0; border-top: 1.5px solid var(--rule); margin: 0; }
+
   .gallery {
-    display: flex; flex-direction: column; gap: 80px; align-items: flex-start;
+    display: flex; flex-wrap: wrap; align-items: flex-start;
+    justify-content: center;
+    gap: clamp(24px, 4vw, 56px);
+    padding-block: clamp(48px, 7vw, 96px) clamp(72px, 10vw, 140px);
   }
+  /* Each card is sized from its own plate, so the shared scale survives
+     on screen: a bigger card really is a longer walk. */
   .plate {
-    width: 100%; cursor: pointer; border: 0; padding: 0; background: none;
-    font: inherit; color: inherit; text-align: left; display: block;
+    flex: 0 0 auto;
+    width: var(--card);
+    max-width: 100%;
+    cursor: pointer; border: 0; padding: 0; background: none;
+    font: inherit; color: inherit; display: block;
   }
   .plate svg { width: 100%; height: auto; display: block; }
-  .hint {
-    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--faint); margin: 12px 0 0;
-  }
   .plate:focus-visible { outline: 2px solid var(--path); outline-offset: 8px; }
-  .status { font-size: 0.8rem; color: var(--faint); }
-  /* Whilst a walk replays, everything but the line steps back, so the
-     movement itself is what you watch. */
+  .hint {
+    font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink); opacity: 0.4; margin: 12px 0 0; text-align: center;
+  }
+  .status { font-size: 0.85rem; opacity: 0.55; }
+
+  /* Whilst a walk replays, the ground steps back so the line is what you
+     watch. */
   svg.replaying [id$="--blocks"], svg.replaying [id$="--roads"],
   svg.replaying [id$="--wilderness"], svg.replaying [id$="--pauses"],
-  svg.replaying [id$="--gaps"],
-  svg.replaying [id$="--elevation"] { opacity: 0.26; }
+  svg.replaying [id$="--gaps"] { opacity: 0.25; }
   svg [id$="--blocks"], svg [id$="--roads"], svg [id$="--wilderness"],
-  svg [id$="--pauses"], svg [id$="--gaps"], svg [id$="--elevation"],
+  svg [id$="--pauses"], svg [id$="--gaps"],
   svg [id$="--end"] { transition: opacity 0.4s ease; }
   @media (prefers-reduced-motion: reduce) {
     svg [id$="--blocks"], svg [id$="--roads"], svg [id$="--wilderness"],
-    svg [id$="--pauses"], svg [id$="--gaps"], svg [id$="--elevation"],
+    svg [id$="--pauses"], svg [id$="--gaps"],
     svg [id$="--end"] { transition: none; }
   }
-  @media (max-width: 560px) {
-    .gallery { gap: 56px; }
+  @media (max-width: 640px) {
+    .gallery { justify-content: flex-start; }
     .plate { width: 100% !important; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <p class="eyebrow">Dharamshala &middot; May 2026</p>
-    <h1>Two walks, drawn as they were recorded</h1>
-    <p>Every plate shares one scale, so a bigger plate means a longer walk.
-       Circles are pauses, sized by how long the standing still lasted, on
-       the same scale across every plate. The profile beneath each plate is
-       the climb.</p>
-    <p>Where the line runs straight, Strava had stopped recording but the
-       walking carried on. The long dash across naddi is a cab — part of the
-       journey, but not part of the distance walked.</p>
-    <p>Orange shapes are real buildings and roads from OpenStreetMap, and
-       the small firs mark wooded ground. Both walks climb out of forest
-       into a town, and you can see where one gives way to the other.</p>
-    <p class="status">Click a walk to watch it happen.</p>
-  </header>
+<header class="inset">
+  <h1>Walks</h1>
+  <p class="standfirst">A documentation of walks and the shapes created on
+     the way.</p>
+</header>
+<hr class="divider">
 
+<div class="inset">
   <div class="gallery" id="gallery">
     <p class="status">Loading walks…</p>
   </div>
@@ -101,10 +107,33 @@
 <script>
 const GALLERY = "plates/gallery.json";
 
-// Longer walks replay for longer, but not in proportion — naddi would
-// run for a minute whilst a short walk blinked past.
+// The widest plate fills this much of the row; everything else keeps its
+// true proportion to it, so the shared scale still reads on screen.
+const WIDEST_CARD = 720;
+
 function replaySeconds(metres) {
   return Math.min(9, 2.4 + Math.sqrt(metres) / 26);
+}
+
+// Every plate is a standalone file carrying the same layer names, so once
+// several are inlined into one page those ids collide. The clip path is
+// the dangerous one: a second plate asking for url(#frame) is handed the
+// first plate's frame and gets clipped to the wrong shape.
+function makeIdsUnique(svg, key) {
+  const tag = key.replace(/[^a-z0-9]+/gi, "-");
+  const renamed = new Map();
+  svg.querySelectorAll("[id]").forEach(el => {
+    renamed.set(el.id, tag + "--" + el.id);
+    el.id = tag + "--" + el.id;
+  });
+  svg.querySelectorAll("*").forEach(el => {
+    for (const attr of el.attributes) {
+      const match = /^url\(#(.+)\)$/.exec(attr.value.trim());
+      if (match && renamed.has(match[1])) {
+        el.setAttribute(attr.name, "url(#" + renamed.get(match[1]) + ")");
+      }
+    }
+  });
 }
 
 async function build() {
@@ -119,15 +148,14 @@ async function build() {
     return;
   }
 
-  // Keep the shared scale on screen: the widest plate fills the column
-  // and the rest stay proportional, so you can still compare by eye.
   const widest = Math.max(...walks.map(w => w.width));
   holder.innerHTML = "";
 
   for (const walk of walks) {
     const card = document.createElement("button");
     card.className = "plate";
-    card.style.width = (walk.width / widest * 100) + "%";
+    card.style.setProperty("--card",
+      Math.round(walk.width / widest * WIDEST_CARD) + "px");
     card.setAttribute("aria-label", "Replay " + walk.name);
     card.innerHTML = '<p class="status">' + walk.name + '…</p>';
     holder.appendChild(card);
@@ -146,35 +174,12 @@ async function build() {
   }
 }
 
-// Every plate is written as a standalone file, so they all carry the same
-// layer names — and once several are inlined into one page those ids
-// collide. The clip path is the dangerous one: a second plate asking for
-// url(#frame) is handed the first plate's frame and gets clipped to the
-// wrong shape. Give each plate its own prefix on the way in.
-function makeIdsUnique(svg, key) {
-  const tag = key.replace(/[^a-z0-9]+/gi, "-");
-  const renamed = new Map();
-  svg.querySelectorAll("[id]").forEach(el => {
-    renamed.set(el.id, tag + "--" + el.id);
-    el.id = tag + "--" + el.id;
-  });
-  svg.querySelectorAll("*").forEach(el => {
-    for (const attr of el.attributes) {
-      const match = /^url\(#(.+)\)$/.exec(attr.value.trim());
-      if (match && renamed.has(match[1])) {
-        el.setAttribute(attr.name, "url(#" + renamed.get(match[1]) + ")");
-      }
-    }
-  });
-}
-
 function replay(svg, walk) {
   const strokes = [...svg.querySelectorAll('[id$="--path"] polyline')];
   if (!strokes.length || svg.dataset.running === "yes") return;
   svg.dataset.running = "yes";
   svg.classList.add("replaying");
 
-  // Hide where the walk finished until it has actually got there.
   const endDot = svg.querySelector('[id$="--end"]');
   if (endDot) endDot.style.opacity = "0";
 

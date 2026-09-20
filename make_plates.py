@@ -30,7 +30,8 @@ from urllib.parse import quote
 GROUND  = "#f9e278"   # flat yellow background
 BLOCKS  = "#f3b568"   # pale orange abstract blocks
 PATH    = "#e13a3d"   # red walk path
-CAPTION = "#555555"   # mono grey text
+CAPTION = "#686136"   # olive, for the caption inside the card
+RULE    = "#655920"   # the thin line above the caption
 
 FONT = "JetBrains Mono, ui-monospace, monospace"
 
@@ -583,10 +584,12 @@ def conifer(x, y, size, colour, fade):
             f'L {x - size*0.68:.2f} {y + size*0.26:.2f} '
             f'L {x - size*0.30:.2f} {y - size*0.30:.2f} '
             f'L {x - size*0.52:.2f} {y - size*0.30:.2f} Z" '
-            f'fill="{colour}" opacity="{fade:.2f}"/>\n'
-            f'    <rect x="{x - size*0.07:.2f}" y="{y + size*0.20:.2f}" '
-            f'width="{size*0.14:.2f}" height="{trunk:.2f}" '
-            f'fill="{colour}" opacity="{fade:.2f}"/>')
+            f'fill="none" stroke="{colour}" stroke-width="{size*0.13:.2f}" '
+            f'stroke-linejoin="round" opacity="{fade:.2f}"/>\n'
+            f'    <line x1="{x:.2f}" y1="{y + size*0.16:.2f}" '
+            f'x2="{x:.2f}" y2="{y + size*0.16 + trunk:.2f}" '
+            f'stroke="{colour}" stroke-width="{size*0.13:.2f}" '
+            f'stroke-linecap="round" opacity="{fade:.2f}"/>')
 
 
 def escape(text):
@@ -644,10 +647,10 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     stroke = clamp(long_side / 115, 3.5, 14)
     dot = stroke * 1.7
 
-    profile_h = size * 3.2
-
-    # The band is measured from what it has to hold, so nothing is clipped.
-    band = size * 1.6 + size * 0.9 + profile_h + small * 2.4 + margin * 0.6
+    # The band holds a rule and the caption, centred. Nothing else.
+    lines = [line for line in str(caption).split("\n") if line.strip()] or [""]
+    band = (margin * 0.75 + size * 1.5 * len(lines)
+            + small * 1.9 + margin * 0.75)
 
     plate_w = art_w + margin * 2
     plate_h = art_h + margin * 2 + band
@@ -704,16 +707,18 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         for shape in buildings:
             points = " ".join(f"{x:.2f},{y:.2f}"
                               for x, y in (place(px, py) for px, py in shape))
-            add(f'    <polygon points="{points}" fill="{BLOCKS}" '
-                f'opacity="{dice.uniform(0.38, 0.78):.2f}"/>')
+            add(f'    <polygon points="{points}" fill="none" stroke="{BLOCKS}" '
+                f'stroke-width="{stroke*0.32:.2f}" stroke-linejoin="round" '
+                f'opacity="{dice.uniform(0.55, 0.95):.2f}"/>')
     else:
         # No map data for this walk, so fall back to abstract ground.
         for block in make_blocks(chains, max(width_m, height_m), name):
             bx, by = place(block["x"], block["y"])
             bw, bh = block["w"] / metres_per_pixel, block["h"] / metres_per_pixel
             add(f'    <rect x="{bx - bw/2:.2f}" y="{by - bh/2:.2f}" '
-                f'width="{bw:.2f}" height="{bh:.2f}" fill="{BLOCKS}" '
-                f'opacity="{block["fade"]:.2f}" '
+                f'width="{bw:.2f}" height="{bh:.2f}" fill="none" '
+                f'stroke="{BLOCKS}" stroke-width="{stroke*0.32:.2f}" '
+                f'opacity="{block["fade"] + 0.2:.2f}" '
                 f'transform="rotate({block["angle"]:.1f} {bx:.2f} {by:.2f})"/>')
     add('  </g>')
 
@@ -792,38 +797,25 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     add('    </g>')
     add('  </g>')
 
-    base = plate_h - band + size * 1.6
+    # A thin rule across the card, then the caption centred beneath it,
+    # and the distance walked in smaller type under that.
+    rule_y = plate_h - band
+    centre = plate_w / 2
     add('  <g id="caption">')
-    add(f'    <text x="{margin:.2f}" y="{base:.2f}" font-family="{FONT}" '
-        f'font-size="{size:.1f}" fill="{CAPTION}">{escape(caption)}</text>')
+    add(f'    <line x1="0" y1="{rule_y:.2f}" x2="{plate_w:.2f}" y2="{rule_y:.2f}" '
+        f'stroke="{RULE}" stroke-width="{max(1.0, stroke*0.16):.2f}"/>')
+    y = rule_y + margin * 0.75 + size
+    for line in lines:
+        add(f'    <text x="{centre:.2f}" y="{y:.2f}" font-family="{FONT}" '
+            f'font-size="{size:.1f}" fill="{CAPTION}" text-anchor="middle">'
+            f'{escape(line)}</text>')
+        y += size * 1.5
     add('  </g>')
 
-    # The climb, drawn rather than written. Across is distance walked,
-    # up is height. Same yellow ground, so it reads as part of the plate.
-    add('  <g id="elevation">')
-    top = base + size * 0.9
-    left, right = margin, plate_w - margin
-    if len(profile) > 1:
-        far = profile[-1][0] or 1.0
-        lows = [h for _, h in profile]
-        low, high = min(lows), max(lows)
-        rise = (high - low) or 1.0
-        shape = [(left + (d / far) * (right - left),
-                  top + profile_h - ((h - low) / rise) * profile_h)
-                 for d, h in profile]
-        thinned = shape[:: max(1, len(shape) // 600)] + [shape[-1]]
-        line = " ".join(f"{x:.2f},{y:.2f}" for x, y in thinned)
-        add(f'    <polygon points="{left:.2f},{top+profile_h:.2f} {line} '
-            f'{right:.2f},{top+profile_h:.2f}" fill="{BLOCKS}" opacity="0.85"/>')
-        add(f'    <polyline points="{line}" fill="none" stroke="{PATH}" '
-            f'stroke-width="{stroke*0.4:.2f}" stroke-linejoin="round"/>')
-    add('  </g>')
-
-    # Distance walked, under the profile.
-    row_text = top + profile_h + small * 2.3
     add('  <g id="figures">')
-    add(f'    <text x="{left:.2f}" y="{row_text:.2f}" font-family="{FONT}" '
-        f'font-size="{small:.1f}" fill="{CAPTION}">{say_distance(distance)} walked</text>')
+    add(f'    <text x="{centre:.2f}" y="{y + small * 0.5:.2f}" '
+        f'font-family="{FONT}" font-size="{small:.1f}" fill="{CAPTION}" '
+        f'text-anchor="middle" opacity="0.75">{say_distance(distance)} walked</text>')
     add('  </g>')
 
     add('</svg>')

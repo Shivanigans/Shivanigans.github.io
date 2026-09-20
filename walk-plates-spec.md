@@ -8,11 +8,14 @@ layered SVG.
 
 | element | value |
 |---|---|
+| page | `#efefdf` pale sage, behind the cards |
 | ground | `#f9e278` flat yellow |
-| blocks | `#f3b568` pale orange, abstract, behind the path |
+| blocks | `#f3b568` pale orange, drawn as outlines, not fills |
 | path | `#e13a3d` red, heavy weight |
 | endpoints | solid dot at start, cross at end |
-| caption | `#555555` mono grey, beneath the plate |
+| caption | `#686136` olive, centred inside the card |
+| rule | `#655920` thin, above the caption |
+| page ink | `#565658` for the page's own type |
 
 ## Decisions
 
@@ -70,9 +73,6 @@ a guess, and it got naddi wrong. A cab crawling through a hill town looks like
 walking, and slow walking across a long gap looks like a cab. `VEHICLE_GAPS`
 in the script overrides it by walk name and gap number, which the script
 prints on every run.
-
-**Elevation** — drawn as a climb profile in the caption band, not written.
-Across is distance walked, up is height. Distance walked is labelled beneath.
 
 **Typeface** — JetBrains Mono, with a monospace fallback. It must be
 installed locally for Figma to render it.
@@ -166,7 +166,8 @@ worked out if the script can see them all:
 
     python3 make_plates.py walks/*.gpx
 
-Captions go in `captions.json`, keyed by Strava track name. Layers are
+Captions go in `captions.json`, keyed by Strava track name, and replace the
+Strava name on the plate. A newline in the caption breaks it across lines. Layers are
 `background`, `blocks`, `pace`, `gaps`, `path`, `pauses`, `reversals`,
 `endpoints`, `caption`, `elevation` and `figures`; `pace` and `reversals` are
 hidden by default.
