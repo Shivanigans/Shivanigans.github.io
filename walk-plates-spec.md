@@ -35,7 +35,7 @@ Orientation falls out of the footprint rather than being chosen. The earlier
 itself encodes distance. Short walks print small and that is the intent.
 
 **No minimum plate size.** A 400 m walk prints at roughly 352 x 459 px beside
-naddi's 1528 x 1347. The size difference is part of what the gallery says.
+naddi's 765 x 1751. The size difference is part of what the gallery says.
 
 **Blocks** — real building footprints from OpenStreetMap where map data is
 supplied, otherwise abstract shapes following the route. Either way they are
@@ -52,8 +52,7 @@ They were originally one-per-pause sized by duration, but that could not be
 read: a random size jitter reversed the ordering within a plate (a 2.3 minute
 pause drew larger than a 3.4 minute one), and per-plate scaling broke it
 across plates (naddi's 15 minute pause drew larger than mcleodganj's 39
-minute one). Pauses are carried by the circles, which are on a shared scale
-and have a legend.
+minute one). Pauses are carried by the circles, which are on a shared scale.
 
 Each walk's blocks are seeded from its name, so a walk always draws the same
 ground rather than reshuffling on every run.
@@ -98,21 +97,21 @@ Projection is local equirectangular; GPS spikes above 6 m/s dropped.
 | | Walk to mcleodganj | Walk to naddi |
 |---|---|---|
 | Strava type | walking | hiking |
-| points | 5,380 (3 spikes) | 15,389 (23 spikes) |
+| points | 5,380 (5 spikes) | 15,389 (29 spikes) |
 | distance walked | 4.20 km | 10.74 km |
 | duration | 130 min | 427 min |
 | footprint | 844 x 1537 m | 2331 x 1011 m |
-| orientation | portrait (0.55) | landscape (2.31) |
+| footprint orientation | portrait (0.55) | landscape (2.31) |
 | elevation range | 1617-1768 m | 1767-1968 m |
 | elevation gain | 177 m | 416 m |
 | moving pace | 21.4 min/km | 23.4 min/km |
 | pauses | 6 | 18 |
-| reversals | 23 | 74 |
-| plate size | 613 x 1300 px | 1530 x 1158 px |
+| reversals | 24 | 73 |
+| plate size | 613 x 1169 px | 765 x 1751 px |
 | recording gaps | 1 | 6, of which 1 ridden |
 | stretches drawn | 1 | 2 |
-| map data | 264 buildings, 174 roads | 762 buildings, 345 roads |
-| conifers drawn | 33 | 123 |
+| map data | 446 buildings, 162 roads | 762 buildings, 345 roads |
+| conifers drawn | 45 | 119 |
 
 Naddi sets the ceiling for the shared scale, at 1.727 m per pixel.
 
@@ -128,6 +127,22 @@ ascent.
 
 Distance was given as 12.26 km, which counted the cab ride and the rests as
 route. 10.74 km is what was walked.
+
+Most of this table was re-checked against the plates committed here, either
+from the stats comment each SVG carries or by counting what each one draws.
+Four figures could not be: Strava type, the point totals, elevation range and
+moving pace live only in the GPX, and no GPX is in the repository. The spike
+counts beside the point totals were re-measured; the totals themselves were
+not.
+
+Reversals, spikes dropped and conifers had all drifted from what this table
+said, and mcleodganj's map data had changed most of all — its `.geojson` now
+holds 446 buildings and 162 roads, all of which are drawn. Naddi's drift is
+explained by the 90 degree turn, which moves the frame and so changes both the
+tree scatter and what the reversal detector sees. Mcleodganj is not turned,
+yet its spike count still went from 3 to 5, and that is unexplained. It wants
+checking against the GPX, because the spike filter runs before everything
+else, so a change there moves every figure after it.
 
 ## Map data
 
@@ -163,7 +178,7 @@ distinction worth drawing.
 Query each walk on its own bounding box. An earlier shared file left
 mcleodganj's southern two-thirds nearly bare — 8 buildings — and that looked
 like a gap in OpenStreetMap. It was not: that area sits south of naddi's
-bounding box, so it was never asked for. Queried properly it holds 269
+bounding box, so it was never asked for. Queried properly it holds 446
 buildings. Two downloads that return the same way ids are the sign to check.
 
 ## The script
@@ -176,9 +191,9 @@ worked out if the script can see them all:
 
 Captions go in `captions.json`, keyed by Strava track name, and replace the
 Strava name on the plate. A newline in the caption breaks it across lines. Layers are
-`background`, `blocks`, `pace`, `gaps`, `path`, `pauses`, `reversals`,
-`endpoints`, `caption`, `elevation` and `figures`; `pace` and `reversals` are
-hidden by default.
+`background`, `wilderness`, `blocks`, `roads`, `pace`, `gaps`, `path`,
+`pauses`, `reversals`, `endpoints`, `caption` and `figures`; `pace` and
+`reversals` are hidden by default.
 
 Margins are worked out as a share of the plate (7%) held between a floor and a
 ceiling, rather than fixed, because plates now range from a few hundred pixels
@@ -246,6 +261,12 @@ Known problems:
 - The repository is public. The plates are abstracted and fine, but raw GPX
   files would publish one-second-resolution timestamps of where she was on
   specific dates, so none are committed.
+- Mcleodganj's spike count moved from 3 to 5 with no turn applied and no
+  change to `SPIKE_SPEED`. Every later figure depends on the spike filter, so
+  this wants checking against the GPX before the table is trusted again.
+- Because no GPX is committed, nobody working from the repository alone can
+  rerun the script or re-measure the table. The plates and `gallery.json` are
+  the only record, which is why this table is now checked against them.
 
 Not built yet:
 
