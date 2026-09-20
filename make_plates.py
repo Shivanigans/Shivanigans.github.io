@@ -275,6 +275,50 @@ def find_reversals(runs):
     return found
 
 
+# A dead end: you walk out, turn round, and come back over roughly the
+# same ground. These are the reroutes - the wrong turnings that a plain
+# line loses, because the way out and the way back sit on top of each
+# other.
+SPUR_CORRIDOR = 28.0      # how close the return has to pass the outbound
+SPUR_MIN_OUT = 45.0       # how far out before it counts as a dead end
+
+
+def find_dead_ends(runs):
+    """Places the walk went out and came straight back."""
+    points = [p for run in runs for p in resample(smooth(run), 18.0)]
+    if len(points) < 8:
+        return []
+
+    along = [0.0]
+    for i in range(1, len(points)):
+        along.append(along[-1] + math.dist(points[i - 1][:2], points[i][:2]))
+
+    found = []
+    spent = set()
+    for i in range(len(points)):
+        if i in spent:
+            continue
+        best = None
+        for j in range(i + 4, min(i + 160, len(points))):
+            walked = along[j] - along[i]
+            if walked < SPUR_MIN_OUT * 2:
+                continue
+            if math.dist(points[i][:2], points[j][:2]) <= SPUR_CORRIDOR:
+                best = (j, walked)
+        if not best:
+            continue
+        j, walked = best
+        reach = max(math.dist(points[i][:2], points[k][:2])
+                    for k in range(i, j + 1))
+        found.append({
+            "reach": reach, "walked": walked,
+            "seconds": (points[j][2] - points[i][2]).total_seconds(),
+            "at": points[i][2],
+        })
+        spent.update(range(i, j + 1))
+    return found
+
+
 def pace_segments(track):
     out = []
     for i in range(1, len(track)):
@@ -606,6 +650,7 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     # smoothing pulls points together and would invent stillness.
     pauses = all_pauses(runs, gaps)
     reversals = find_reversals(runs)
+    dead_ends = find_dead_ends(runs)
     profile = elevation_profile(runs, gaps)
     distance = walked_distance(runs, gaps)
     ascent = climb(profile)
@@ -837,6 +882,10 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
                                    metres_per_pixel * TREE_EVERY_PX, name)),
         "bbox": (south, west, north, east),
         "name": name, "distance": distance, "ascent": ascent,
+        "dead_ends": dead_ends,
+        "seconds": (track[-1][2] - track[0][2]).total_seconds(),
+        "started": track[0][2].strftime("%H:%M"),
+        "finished": track[-1][2].strftime("%H:%M"),
         "footprint": (width_m, height_m), "plate": (plate_w, plate_h),
         "pauses": len(pauses), "reversals": len(reversals),
         "stretches": len(chains), "dropped": dropped,
@@ -895,6 +944,11 @@ def main(paths):
               f"({'portrait' if h > w else 'landscape'})")
         print(f"  {stats['pauses']} pauses -> {stats['pauses']} blocks, "
               f"{stats['reversals']} reversals, {stats['dropped']} spikes dropped")
+        if stats["dead_ends"]:
+            biggest = max(stats["dead_ends"], key=lambda d: d["reach"])
+            print(f"  {len(stats['dead_ends'])} dead ends, the longest "
+                  f"{biggest['reach']:.0f} m out at "
+                  f"{biggest['at'].strftime('%H:%M')}")
         if stats["map"]:
             print(f"  map data: {stats['buildings']} buildings, "
                   f"{stats['roads']} roads from {os.path.basename(stats['map'])}")
@@ -923,11 +977,16 @@ def main(paths):
                       f"{gap['metres']:6.0f} m ({kmh:4.1f} km/h) -> {gap['kind']}")
         print(f"  written to {OUT_DIR}/{filename}\n")
 
-        gallery.append({"name": stats["name"], "file": filename,
-                        "caption": stats["caption"],
-                        "distance": round(stats["distance"]),
-                        "ascent": round(stats["ascent"]),
-                        "width": round(w), "height": round(h)})
+        gallery.append({
+            "name": stats["name"], "file": filename,
+            "caption": stats["caption"],
+            "distance": round(stats["distance"]),
+            "ascent": round(stats["ascent"]),
+            "pauses": stats["pauses"],
+            "deadEnds": len(stats["dead_ends"]),
+            "minutes": round(stats["seconds"] / 60),
+            "started": stats["started"], "finished": stats["finished"],
+            "width": round(w), "height": round(h)})
 
     with open(os.path.join(OUT_DIR, "gallery.json"), "w") as handle:
         json.dump(gallery, handle, indent=2)

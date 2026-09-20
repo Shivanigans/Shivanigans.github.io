@@ -178,6 +178,16 @@ ceiling, rather than fixed, because plates now range from a few hundred pixels
 to over 1500. The caption band is measured from its actual contents so the
 legend cannot be clipped off a short plate.
 
+## Dead ends
+
+A dead end is where the walk went out and came straight back over roughly
+the same ground: a later point landing within 28 m of an earlier one, with at
+least 45 m covered each way. These are the reroutes, and a plain line loses
+them because the way out and the way back sit on top of each other.
+
+mcleodganj has one, 345 m out and back over 66 minutes. Naddi has six, the
+longest 398 m.
+
 ## The gallery
 
 `walks.html` shows every plate as a card on a pale sage ground, inset from

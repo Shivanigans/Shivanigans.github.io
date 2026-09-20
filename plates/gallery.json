@@ -5,6 +5,11 @@
     "caption": "Walk to mcleodganj",
     "distance": 4199,
     "ascent": 177,
+    "pauses": 6,
+    "deadEnds": 1,
+    "minutes": 130,
+    "started": "11:21",
+    "finished": "13:31",
     "width": 613,
     "height": 1169
   },
@@ -14,6 +19,11 @@
     "caption": "Offgrid in naddi",
     "distance": 10745,
     "ascent": 416,
+    "pauses": 18,
+    "deadEnds": 6,
+    "minutes": 427,
+    "started": "09:04",
+    "finished": "16:11",
     "width": 1530,
     "height": 986
   }
