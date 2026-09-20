@@ -721,18 +721,24 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
                 f'stroke-linecap="round"/>')
     add('  </g>')
 
-    # Every gap you crossed on foot is drawn dotted - you were there, the
-    # phone simply was not. Only a vehicle leaves a real break in the line,
-    # because that stretch is not your walk.
+    # Gaps in recording, drawn so the route still reads as one journey.
+    # Dotted where you crossed it on foot and the phone simply was not
+    # watching; dashed where you rode, which is a different kind of
+    # absence and should not be mistaken for walking.
     add('  <g id="gaps">')
     for gap in gaps:
-        if gap["kind"] == "vehicle":
-            continue
         fx, fy = place(gap["from"][0], gap["from"][1])
         tx, ty = place(gap["to"][0], gap["to"][1])
+        if gap["kind"] == "vehicle":
+            style = (f'stroke-width="{stroke*0.5:.2f}" stroke-linecap="butt" '
+                     f'stroke-dasharray="{stroke*2.4:.2f} {stroke*1.5:.2f}" '
+                     f'opacity="0.6"')
+        else:
+            style = (f'stroke-width="{stroke*0.45:.2f}" stroke-linecap="round" '
+                     f'stroke-dasharray="{stroke*0.1:.2f} {stroke*1.5:.2f}" '
+                     f'opacity="0.75"')
         add(f'    <line x1="{fx:.2f}" y1="{fy:.2f}" x2="{tx:.2f}" y2="{ty:.2f}" '
-            f'stroke="{PATH}" stroke-width="{stroke*0.45:.2f}" stroke-linecap="round" '
-            f'stroke-dasharray="{stroke*0.1:.2f} {stroke*1.5:.2f}" opacity="0.75"/>')
+            f'stroke="{PATH}" {style}/>')
     add('  </g>')
 
     add('  <g id="path">')

@@ -55,10 +55,13 @@ climbing and standing still are indistinguishable by speed.
 **Reversals** — all kept, none filtered. Switchbacks are part of what a steep
 walk is.
 
-**Recording gaps** — Strava switching off to save battery. Every gap crossed
-on foot is drawn as a dotted connector, so the route still reads as one
-journey. Only a vehicle leaves a real break in the line, because that stretch
-is not the walk.
+**Recording gaps** — Strava switching off to save battery. Every gap is drawn
+so the route reads as one journey: finely dotted where it was crossed on foot
+and the phone simply was not watching, long-dashed where it was ridden. A
+ridden stretch is a different kind of absence and should not be mistaken for
+walking, but leaving it out altogether made the route unreadable.
+
+A ridden stretch is still excluded from the distance walked.
 
 A speed rule sorts them as a first guess — under 100 m means standing still,
 under 3 km/h means walking unrecorded, faster means a vehicle — but it is only
@@ -98,7 +101,7 @@ Projection is local equirectangular; GPS spikes above 6 m/s dropped.
 | pauses | 6 | 18 |
 | reversals | 23 | 74 |
 | plate size | 613 x 1300 px | 1530 x 1158 px |
-| recording gaps | 1 | 6 |
+| recording gaps | 1 | 6, of which 1 ridden |
 | stretches drawn | 2 | 7 |
 | map data | 264 buildings, 174 roads | 762 buildings, 345 roads |
 | conifers drawn | 33 | 123 |
