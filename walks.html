@@ -89,11 +89,14 @@
   }
 
   /* ---- the walk overlay ---------------------------------------- */
+  /* The overlay is exactly one screen. Nothing scrolls: the plate is
+     fitted to the height left over, and the panel takes its own
+     scrollbar only if a small screen forces it. */
   .overlay {
     position: fixed; inset: 0; z-index: 20;
     background: var(--page);
-    display: grid; grid-template-rows: auto 1fr;
-    overflow-y: auto;
+    display: grid; grid-template-rows: auto minmax(0, 1fr);
+    height: 100dvh; overflow: hidden;
   }
   .overlay[hidden] { display: none; }
   .overlay-bar {
@@ -114,27 +117,37 @@
   .shut:hover { color: var(--path); }
 
   .rundown {
-    display: grid; gap: clamp(28px, 4vw, 56px);
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-    align-items: start;
-    padding: clamp(28px, 4vw, 56px) var(--gutter) clamp(56px, 8vw, 96px);
+    display: grid; gap: clamp(24px, 3vw, 48px);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    align-items: stretch;
+    padding: clamp(20px, 2.5vw, 40px) var(--gutter);
     max-width: 1560px; margin: 0 auto; width: 100%;
+    min-height: 0;
   }
-  .stage svg { width: 100%; height: auto; display: block; }
+  /* The plate is fitted to the box rather than the width, so a tall walk
+     shrinks to the screen instead of running off the bottom. */
+  .stage { min-height: 0; display: grid; place-items: center; }
+  .stage svg {
+    max-width: 100%; max-height: 100%;
+    width: auto; height: auto; display: block;
+  }
 
-  .panel { display: flex; flex-direction: column; gap: 32px; }
+  .panel {
+    display: flex; flex-direction: column; gap: 22px;
+    min-height: 0; overflow-y: auto;
+  }
   /* The caption changes as the walk plays. Until the moments are written
      it holds the walk's own caption. */
   .said {
-    font-size: 1.05rem; line-height: 1.55; margin: 0;
-    color: var(--caption); font-weight: 500; min-height: 3.2em;
+    font-size: 1.05rem; line-height: 1.5; margin: 0;
+    color: var(--caption); font-weight: 500; min-height: 3em;
   }
   .clock {
     font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
     opacity: 0.5; margin: 0 0 10px;
   }
-  .figures { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 24px;
-             margin: 0; padding: 22px 0; border-block: 1px solid rgba(0,0,0,0.14); }
+  .figures { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px;
+             margin: 0; padding: 18px 0; border-block: 1px solid rgba(0,0,0,0.14); }
   .figures div { margin: 0; }
   .figures dt {
     font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
@@ -147,15 +160,20 @@
     font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
     opacity: 0.55; margin: 0 0 12px; font-weight: 400;
   }
-  .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  /* A filmstrip rather than a grid: the panel has to fit a short screen
+     without a scrollbar of its own. */
+  .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .slot {
     aspect-ratio: 1; border: 1px dashed rgba(0,0,0,0.22); border-radius: 2px;
     display: grid; place-items: center;
-    font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--ink); opacity: 0.4;
   }
   @media (max-width: 860px) {
+    .overlay { height: auto; min-height: 100dvh; overflow-y: auto; }
     .rundown { grid-template-columns: minmax(0, 1fr); }
+    .panel { overflow: visible; }
+    .stage svg { max-height: 60dvh; }
   }
 </style>
 </head>
@@ -329,6 +347,7 @@ function clocked(minutes) {
 }
 
 let lastOpener = null;
+let scrollWas = 0;
 
 // Clicking a card opens the walk on its own: the plate large, the figures
 // beside it, and the line drawing itself from start to finish.
@@ -352,14 +371,28 @@ async function openWalk(walk) {
 
   stage.innerHTML = '<p class="status">Loading…</p>';
   overlay.hidden = false;
-  document.body.style.overflow = "hidden";
-  document.getElementById("shut").focus();
+  // Pin the page behind where it stands. Hiding overflow alone is not
+  // enough: clicking a card focuses it, and the browser scrolls that
+  // button into view before any lock can hold. Fixing the body keeps the
+  // position exactly, and it is restored on close.
+  scrollWas = window.scrollY;
+  document.body.style.position = "fixed";
+  document.body.style.top = -scrollWas + "px";
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.getElementById("shut").focus({ preventScroll: true });
 
   const markup = await (await fetch("plates/" + walk.file)).text();
   stage.innerHTML = markup;
   const svg = stage.querySelector("svg");
   svg.removeAttribute("width");
   svg.removeAttribute("height");
+  // Crop the plate's own caption band away. The title sits in the bar and
+  // in the panel here, and cropping it buys the map the height back and
+  // stops the caption being shrunk to nothing.
+  svg.setAttribute("viewBox", `0 0 ${walk.width} ${walk.artHeight}`);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.style.aspectRatio = walk.width + " / " + walk.artHeight;
   makeIdsUnique(svg, "stage-" + walk.file);
   replay(svg, walk);
 }
@@ -369,8 +402,12 @@ function shutWalk() {
   if (overlay.hidden) return;
   overlay.hidden = true;
   document.getElementById("stage").innerHTML = "";
-  document.body.style.overflow = "";
-  if (lastOpener) lastOpener.focus();
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  window.scrollTo(0, scrollWas);
+  if (lastOpener) lastOpener.focus({ preventScroll: true });
 }
 
 document.getElementById("shut").addEventListener("click", shutWalk);

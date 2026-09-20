@@ -11,7 +11,8 @@
     "started": "11:21",
     "finished": "13:31",
     "width": 613,
-    "height": 1169
+    "height": 1169,
+    "artHeight": 1014
   },
   {
     "name": "Walk to naddi",
@@ -25,6 +26,7 @@
     "started": "09:04",
     "finished": "16:11",
     "width": 1530,
-    "height": 986
+    "height": 986,
+    "artHeight": 765
   }
 ]

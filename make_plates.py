@@ -887,6 +887,7 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         "started": track[0][2].strftime("%H:%M"),
         "finished": track[-1][2].strftime("%H:%M"),
         "footprint": (width_m, height_m), "plate": (plate_w, plate_h),
+        "art_height": plate_h - band,
         "pauses": len(pauses), "reversals": len(reversals),
         "stretches": len(chains), "dropped": dropped,
         "gap_list": [{"number": g["number"], "kind": g["kind"],
@@ -986,7 +987,8 @@ def main(paths):
             "deadEnds": len(stats["dead_ends"]),
             "minutes": round(stats["seconds"] / 60),
             "started": stats["started"], "finished": stats["finished"],
-            "width": round(w), "height": round(h)})
+            "width": round(w), "height": round(h),
+            "artHeight": round(stats["art_height"])})
 
     with open(os.path.join(OUT_DIR, "gallery.json"), "w") as handle:
         json.dump(gallery, handle, indent=2)
