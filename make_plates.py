@@ -775,9 +775,21 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
 
     start_x, start_y = place(chains[0][0][0], chains[0][0][1])
     end_x, end_y = place(chains[-1][-1][0], chains[-1][-1][1])
+    # A filled dot where you set off, a cross where you stopped. Two
+    # different shapes, because two identical dots leave no way of telling
+    # which end of the walk you are looking at. The cross is deliberately
+    # not a ring: the pause marks are rings already.
+    arm = dot * 1.35
     add('  <g id="endpoints">')
-    add(f'    <circle cx="{start_x:.2f}" cy="{start_y:.2f}" r="{dot:.2f}" fill="{PATH}"/>')
-    add(f'    <circle cx="{end_x:.2f}" cy="{end_y:.2f}" r="{dot:.2f}" fill="{PATH}"/>')
+    add(f'    <circle id="start" cx="{start_x:.2f}" cy="{start_y:.2f}" '
+        f'r="{dot:.2f}" fill="{PATH}"/>')
+    add(f'    <g id="end" stroke="{PATH}" stroke-width="{stroke*0.8:.2f}" '
+        f'stroke-linecap="round">')
+    add(f'      <line x1="{end_x - arm:.2f}" y1="{end_y - arm:.2f}" '
+        f'x2="{end_x + arm:.2f}" y2="{end_y + arm:.2f}"/>')
+    add(f'      <line x1="{end_x - arm:.2f}" y1="{end_y + arm:.2f}" '
+        f'x2="{end_x + arm:.2f}" y2="{end_y - arm:.2f}"/>')
+    add('    </g>')
     add('  </g>')
 
     base = plate_h - band + size * 1.6

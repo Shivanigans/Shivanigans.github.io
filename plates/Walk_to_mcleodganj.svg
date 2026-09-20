@@ -1802,8 +1802,11 @@
     <circle cx="533.95" cy="62.81" r="5.92" fill="#e13a3d"/>
   </g>
   <g id="endpoints">
-    <circle cx="219.93" cy="758.71" r="13.15" fill="#e13a3d"/>
-    <circle cx="534.60" cy="62.94" r="13.15" fill="#e13a3d"/>
+    <circle id="start" cx="219.93" cy="758.71" r="13.15" fill="#e13a3d"/>
+    <g id="end" stroke="#e13a3d" stroke-width="6.19" stroke-linecap="round">
+      <line x1="516.84" y1="45.18" x2="552.36" y2="80.70"/>
+      <line x1="516.84" y1="80.70" x2="552.36" y2="45.18"/>
+    </g>
   </g>
   <g id="caption">
     <text x="62.29" y="1048.26" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.2" fill="#555555">Walk to mcleodganj</text>

@@ -4323,8 +4323,11 @@
     <circle cx="1435.67" cy="542.53" r="8.98" fill="#e13a3d"/>
   </g>
   <g id="endpoints">
-    <circle cx="1408.60" cy="401.18" r="19.96" fill="#e13a3d"/>
-    <circle cx="1431.91" cy="545.98" r="19.96" fill="#e13a3d"/>
+    <circle id="start" cx="1408.60" cy="401.18" r="19.96" fill="#e13a3d"/>
+    <g id="end" stroke="#e13a3d" stroke-width="9.39" stroke-linecap="round">
+      <line x1="1404.97" y1="519.04" x2="1458.85" y2="572.92"/>
+      <line x1="1404.97" y1="572.92" x2="1458.85" y2="519.04"/>
+    </g>
   </g>
   <g id="caption">
     <text x="90.00" y="813.37" font-family="JetBrains Mono, ui-monospace, monospace" font-size="30.0" fill="#555555">Walk to naddi</text>

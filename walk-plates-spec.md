@@ -11,7 +11,7 @@ layered SVG.
 | ground | `#f9e278` flat yellow |
 | blocks | `#f3b568` pale orange, abstract, behind the path |
 | path | `#e13a3d` red, heavy weight |
-| endpoints | solid dots at start and end |
+| endpoints | solid dot at start, cross at end |
 | caption | `#555555` mono grey, beneath the plate |
 
 ## Decisions
@@ -179,14 +179,17 @@ legend cannot be clipped off a short plate.
 ## The gallery
 
 `walks.html` shows every plate and replays a walk from start to end when
-clicked, drawing each recorded stretch in turn. Plate widths stay
-proportional on screen, so the shared scale still reads. It loads
-`plates/gallery.json`, which the script writes.
+clicked. Plate widths stay proportional on screen, so the shared scale still
+reads. It loads `plates/gallery.json`, which the script writes.
+
+Each plate is a standalone file carrying the same layer names, so inlining
+several into one page collides their ids. The page renames them per plate on
+the way in and re-points any `url(#...)` reference. Without that, the second
+plate's `clip-path="url(#frame)"` resolves to the first plate's frame and
+clips its geography to the wrong shape.
 
 ## Open
 
-- Start and end are drawn as identical solid dots, so there is no way to tell
-  which is which. On naddi they also sit close together.
 - Pause circles are drawn as outlines and can disappear into the red line.
   They now carry the pause data alone, so legibility matters more than it did.
 - Blocks bleed off the plate edge where the route runs close to it.
