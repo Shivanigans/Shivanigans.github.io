@@ -4223,7 +4223,9 @@
   <g id="gaps">
     <line x1="1411.32" y1="405.77" x2="1290.82" y2="381.63" stroke="#e13a3d" stroke-width="5.28" stroke-linecap="round" stroke-dasharray="1.17 17.61" opacity="0.75"/>
     <line x1="1081.11" y1="461.79" x2="814.72" y2="258.84" stroke="#e13a3d" stroke-width="5.28" stroke-linecap="round" stroke-dasharray="1.17 17.61" opacity="0.75"/>
+    <line x1="190.29" y1="190.85" x2="150.71" y2="193.88" stroke="#e13a3d" stroke-width="5.28" stroke-linecap="round" stroke-dasharray="1.17 17.61" opacity="0.75"/>
     <line x1="213.98" y1="329.22" x2="270.45" y2="373.26" stroke="#e13a3d" stroke-width="5.28" stroke-linecap="round" stroke-dasharray="1.17 17.61" opacity="0.75"/>
+    <line x1="1079.32" y1="461.27" x2="1079.64" y2="461.53" stroke="#e13a3d" stroke-width="5.28" stroke-linecap="round" stroke-dasharray="1.17 17.61" opacity="0.75"/>
   </g>
   <g id="path">
     <polyline id="stretch-1" points="1408.60,401.18 1407.24,400.56 1408.17,401.39 1409.15,402.55 1410.18,403.81 1411.16,405.29 1411.40,405.79" fill="none" stroke="#e13a3d" stroke-width="11.74" stroke-linecap="round" stroke-linejoin="round"/>

@@ -60,6 +60,15 @@ GAP_SECONDS = 45
 GAP_STILL_M = 100.0
 GAP_WALK_KMH = 3.0
 
+# Which gaps were actually a vehicle. The speed rule above is a guess and
+# gets it wrong - a cab crawling through a hill town looks like walking,
+# and slow walking over a long gap looks like a cab. You were there, so
+# name them here by walk and gap number, as the script prints them.
+#   {"Walk to naddi": [6]}
+VEHICLE_GAPS = {
+    "Walk to naddi": [5],
+}
+
 MARGIN_SHARE, MARGIN_MIN, MARGIN_MAX = 0.07, 28, 90
 
 # Wilderness is drawn as scattered conifers rather than a filled shape.
@@ -189,7 +198,7 @@ def classify_gap(before, after):
     return ("walked" if kmh < GAP_WALK_KMH else "vehicle"), seconds, metres
 
 
-def split_on_gaps(track):
+def split_on_gaps(track, name=None):
     """Cut the walk at every break in recording, and say what each break was."""
     runs = [[track[0]]]
     gaps = []
@@ -197,9 +206,16 @@ def split_on_gaps(track):
         if (track[i][2] - track[i - 1][2]).total_seconds() > GAP_SECONDS:
             kind, seconds, metres = classify_gap(track[i - 1], track[i])
             gaps.append({"kind": kind, "seconds": seconds, "metres": metres,
-                         "from": track[i - 1], "to": track[i]})
+                         "from": track[i - 1], "to": track[i],
+                         "number": len(gaps) + 1})
             runs.append([])
         runs[-1].append(track[i])
+
+    # Your word beats the speed rule.
+    for number in VEHICLE_GAPS.get(name, []):
+        if 1 <= number <= len(gaps):
+            gaps[number - 1]["kind"] = "vehicle"
+
     return [r for r in runs if len(r) >= 2], gaps
 
 
@@ -581,7 +597,7 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     _, raw = read_gpx(gpx_path)
     mean_lat = reference_latitude(raw)
     track, dropped = drop_spikes(to_metres(raw, mean_lat))
-    runs, gaps = split_on_gaps(track)
+    runs, gaps = split_on_gaps(track, name)
 
     # Pauses and reversals read from the cleaned but unsmoothed track;
     # smoothing pulls points together and would invent stillness.
@@ -705,11 +721,12 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
                 f'stroke-linecap="round"/>')
     add('  </g>')
 
-    # Gaps you walked but did not record: dotted, because you were there.
-    # Gaps you rode are not drawn at all.
+    # Every gap you crossed on foot is drawn dotted - you were there, the
+    # phone simply was not. Only a vehicle leaves a real break in the line,
+    # because that stretch is not your walk.
     add('  <g id="gaps">')
     for gap in gaps:
-        if gap["kind"] != "walked":
+        if gap["kind"] == "vehicle":
             continue
         fx, fy = place(gap["from"][0], gap["from"][1])
         tx, ty = place(gap["to"][0], gap["to"][1])
@@ -784,10 +801,6 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
 
     add('</svg>')
 
-    kinds = {}
-    for gap in gaps:
-        kinds[gap["kind"]] = kinds.get(gap["kind"], 0) + 1
-
     # The bounding box to download map data for, padded a little so the
     # geography reaches the frame edges rather than stopping at the route.
     pad = max(width_m, height_m) * 0.12
@@ -807,7 +820,10 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         "name": name, "distance": distance, "ascent": ascent,
         "footprint": (width_m, height_m), "plate": (plate_w, plate_h),
         "pauses": len(pauses), "reversals": len(reversals),
-        "stretches": len(drawn), "gaps": kinds, "dropped": dropped,
+        "stretches": len(drawn), "dropped": dropped,
+        "gap_list": [{"number": g["number"], "kind": g["kind"],
+                      "seconds": g["seconds"], "metres": g["metres"],
+                      "at": g["from"][2].strftime("%H:%M")} for g in gaps],
         "caption": caption,
     }
 
@@ -824,9 +840,9 @@ def main(paths):
     biggest = 0.0
     longest_pause = 1.0
     for path in paths:
-        _, raw = read_gpx(path)
+        name, raw = read_gpx(path)
         track, _ = drop_spikes(to_metres(raw))
-        runs, gaps = split_on_gaps(track)
+        runs, gaps = split_on_gaps(track, name)
         points = [p for run in runs for p in smooth(run)]
         biggest = max(biggest,
                       max(p[0] for p in points) - min(p[0] for p in points),
@@ -879,9 +895,13 @@ def main(paths):
             for label, url in direct:
                 print(f"    [{label}] {url}")
             print(f"  Or see it on a map first (Export -> GeoJSON): {turbo}")
-        if stats["gaps"]:
-            told = ", ".join(f"{n} {kind}" for kind, n in sorted(stats["gaps"].items()))
-            print(f"  {stats['stretches']} stretches, recording gaps: {told}")
+        if stats["gap_list"]:
+            print(f"  {stats['stretches']} stretches, "
+                  f"{len(stats['gap_list'])} recording gaps:")
+            for gap in stats["gap_list"]:
+                kmh = gap["metres"] / gap["seconds"] * 3.6 if gap["seconds"] else 0
+                print(f"    {gap['number']}. {gap['at']}  {gap['seconds']/60:4.0f} min, "
+                      f"{gap['metres']:6.0f} m ({kmh:4.1f} km/h) -> {gap['kind']}")
         print(f"  written to {OUT_DIR}/{filename}\n")
 
         gallery.append({"name": stats["name"], "file": filename,

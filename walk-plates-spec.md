@@ -55,16 +55,17 @@ climbing and standing still are indistinguishable by speed.
 **Reversals** — all kept, none filtered. Switchbacks are part of what a steep
 walk is.
 
-**Recording gaps** — Strava switching off to save battery. Not bridged, and
-sorted by how far the walk got whilst it was off:
+**Recording gaps** — Strava switching off to save battery. Every gap crossed
+on foot is drawn as a dotted connector, so the route still reads as one
+journey. Only a vehicle leaves a real break in the line, because that stretch
+is not the walk.
 
-| what happened | test | drawn as |
-|---|---|---|
-| stood still | moved under 100 m | a pause, so it gets a block |
-| walked, unrecorded | under 3 km/h | a dotted line |
-| vehicle | 3 km/h or more | not drawn, not counted |
-
-Naddi has 2 rests, 3 unrecorded walking stretches and 1 cab ride.
+A speed rule sorts them as a first guess — under 100 m means standing still,
+under 3 km/h means walking unrecorded, faster means a vehicle — but it is only
+a guess, and it got naddi wrong. A cab crawling through a hill town looks like
+walking, and slow walking across a long gap looks like a cab. `VEHICLE_GAPS`
+in the script overrides it by walk name and gap number, which the script
+prints on every run.
 
 **Elevation** — drawn as a climb profile in the caption band, not written.
 Across is distance walked, up is height. Distance walked is labelled beneath.
