@@ -48,27 +48,26 @@
      reference. */
   .divider { border: 0; border-top: 1.5px solid var(--rule); margin: 0; }
 
+  /* Cards are packed into justified rows: each row is scaled so it fills
+     the width exactly, and every card keeps its own proportions, so a
+     tall walk stays tall. Widths within a row hold their true ratio to
+     one another. */
   .gallery {
     display: flex; flex-wrap: wrap; align-items: flex-start;
-    justify-content: center;
-    gap: clamp(24px, 4vw, 56px);
+    gap: var(--gap);
     padding-block: clamp(48px, 7vw, 96px) clamp(72px, 10vw, 140px);
+    --gap: clamp(16px, 2vw, 28px);
   }
-  /* Each card is sized from its own plate, so the shared scale survives
-     on screen: a bigger card really is a longer walk. */
   .plate {
     flex: 0 0 auto;
     width: var(--card);
-    max-width: 100%;
     cursor: pointer; border: 0; padding: 0; background: none;
     font: inherit; color: inherit; display: block;
+    transition: opacity 0.25s ease;
   }
   .plate svg { width: 100%; height: auto; display: block; }
-  .plate:focus-visible { outline: 2px solid var(--path); outline-offset: 8px; }
-  .hint {
-    font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--ink); opacity: 0.4; margin: 12px 0 0; text-align: center;
-  }
+  .plate:focus-visible { outline: 2px solid var(--path); outline-offset: 6px; }
+  .gallery:hover .plate:not(:hover) { opacity: 0.72; }
   .status { font-size: 0.85rem; opacity: 0.55; }
 
   /* Whilst a walk replays, the ground steps back so the line is what you
@@ -84,8 +83,7 @@
     svg [id$="--pauses"], svg [id$="--gaps"],
     svg [id$="--end"] { transition: none; }
   }
-  @media (max-width: 640px) {
-    .gallery { justify-content: flex-start; }
+  @media (max-width: 560px) {
     .plate { width: 100% !important; }
   }
 </style>
@@ -95,6 +93,7 @@
   <h1>Walks</h1>
   <p class="standfirst">A documentation of walks and the shapes created on
      the way.</p>
+  <p class="status" style="margin:18px 0 0">Click a walk to watch it happen.</p>
 </header>
 <hr class="divider">
 
@@ -107,14 +106,15 @@
 <script>
 const GALLERY = "plates/gallery.json";
 
-// The widest plate fills this much of the row; everything else keeps its
-// true proportion to it, so the shared scale still reads on screen.
-const WIDEST_CARD = 720;
+// Rows aim for this height and are then scaled to fill the width exactly.
+const TARGET_ROW = 540;
 
-// Below this, a card's caption renders too small to read, because the
-// whole plate scales together. Cards at the floor are drawn slightly
-// larger than truth - the comparison holds above it, not below.
-const MIN_CARD = 380;
+// A row is never squeezed below this, or the captions inside the plates
+// become too small to read.
+const MIN_ROW = 340;
+
+// Nor stretched past this, which happens when one wide card sits alone.
+const MAX_ROW = 760;
 
 function replaySeconds(metres) {
   return Math.min(9, 2.4 + Math.sqrt(metres) / 26);
@@ -153,22 +153,19 @@ async function build() {
     return;
   }
 
-  const widest = Math.max(...walks.map(w => w.width));
   holder.innerHTML = "";
 
   for (const walk of walks) {
     const card = document.createElement("button");
     card.className = "plate";
-    const wide = Math.max(MIN_CARD,
-                          Math.round(walk.width / widest * WIDEST_CARD));
-    card.style.setProperty("--card", wide + "px");
+    card.dataset.ratio = walk.width / walk.height;
     card.setAttribute("aria-label", "Replay " + walk.name);
     card.innerHTML = '<p class="status">' + walk.name + '…</p>';
     holder.appendChild(card);
 
     try {
       const markup = await (await fetch("plates/" + walk.file)).text();
-      card.innerHTML = markup + '<p class="hint">click to replay</p>';
+      card.innerHTML = markup;
       const svg = card.querySelector("svg");
       svg.removeAttribute("width");
       svg.removeAttribute("height");
@@ -178,6 +175,50 @@ async function build() {
       card.innerHTML = '<p class="status">' + walk.name + ' failed to load.</p>';
     }
   }
+
+  layout();
+  window.addEventListener("resize", layout);
+}
+
+// Fill each row exactly. Cards are taken in order until they would
+// overflow at the target height, then the row is scaled to fit the width
+// it actually has. The last row keeps the target height rather than being
+// stretched across the page on its own.
+function layout() {
+  const holder = document.getElementById("gallery");
+  const cards = [...holder.querySelectorAll(".plate")];
+  if (!cards.length) return;
+
+  const width = holder.clientWidth;
+  const gap = parseFloat(getComputedStyle(holder).columnGap) || 0;
+  if (width < 560) {                       // one card per row on a phone
+    cards.forEach(c => (c.style.width = ""));
+    return;
+  }
+
+  let row = [], ratios = 0;
+  const place = (stretch) => {
+    if (!row.length) return;
+    const free = width - gap * (row.length - 1);
+    let height = stretch ? free / ratios : TARGET_ROW;
+    height = Math.max(MIN_ROW, Math.min(MAX_ROW, height));
+    row.forEach(c => {
+      c.style.width = Math.floor(Number(c.dataset.ratio) * height) + "px";
+    });
+    row = []; ratios = 0;
+  };
+
+  // Fill a row past the width first, then scale it down to fit. Checking
+  // before adding would break rows early and leave a card stranded on a
+  // line of its own.
+  for (const card of cards) {
+    row.push(card);
+    ratios += Number(card.dataset.ratio) || 1;
+    if (ratios * TARGET_ROW + gap * (row.length - 1) >= width) place(true);
+  }
+  // The final row is stretched only when it is nearly full already, so a
+  // lone card is not blown up across the whole page.
+  place(ratios * TARGET_ROW >= width * 0.6);
 }
 
 function replay(svg, walk) {

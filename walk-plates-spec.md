@@ -137,9 +137,10 @@ so buildings sit where the walk actually passed them. Both layers are clipped
 to the picture area, because map data runs past the walk in every direction
 and would otherwise carry on through the caption band.
 
-One download covers a whole area and several walks with it, so a file named
-`area.geojson` beside the walks serves any of them. A walk with its own
-`<name>.geojson` uses that instead.
+A file named `area.geojson` beside the walks serves any walk that has no file
+of its own, which is convenient but only safe when the download's bounding box
+actually covers that walk. A walk with its own `<name>.geojson` uses that
+instead, and that is the reliable option.
 
 Coverage of wilderness is thin. The query asks for woods, scrub, grassland,
 water, farmland, nature reserves and protected areas, across ways and
@@ -152,11 +153,11 @@ naddi's western corners fall inside it and its eastern ones do not, and 77%
 of that walk is within it. So it separates forest from town, which is the
 distinction worth drawing.
 
-Coverage is uneven and that is kept, not filled. On mcleodganj, OpenStreetMap
-has 459-859 data points per band across the northern third and 11-55 across
-the southern two-thirds, because that stretch is forested hillside with
-nothing mapped on it. The plate is left empty there: the walk goes from empty
-ground into a dense town, and showing that is the point.
+Query each walk on its own bounding box. An earlier shared file left
+mcleodganj's southern two-thirds nearly bare — 8 buildings — and that looked
+like a gap in OpenStreetMap. It was not: that area sits south of naddi's
+bounding box, so it was never asked for. Queried properly it holds 269
+buildings. Two downloads that return the same way ids are the sign to check.
 
 ## The script
 
@@ -183,11 +184,14 @@ legend cannot be clipped off a short plate.
 the sides, and replays a walk from start to end when clicked. It loads
 `plates/gallery.json`, which the script writes.
 
-Cards are sized from their own plate, so the shared scale survives on screen.
-There is a floor of 380px, though: below that a card's caption renders too
-small to read, because the whole plate scales together. Cards at the floor
-are drawn slightly larger than truth, so the comparison holds above it and
-not below. mcleodganj sits at the floor.
+Cards are packed into justified rows: a row is filled past the container
+width and then scaled down to fit it exactly, so the row fills edge to edge
+and every card keeps its own proportions. A tall walk stays tall.
+
+Within a row the relative sizes are true, so a wider card is a longer walk.
+Between rows they are not, because each row takes its own scale. Row height
+is held between 340 and 760px, below which captions stop being readable and
+above which a lone card is blown up across the page.
 
 Each plate is a standalone file carrying the same layer names, so inlining
 several into one page collides their ids. The page renames them per plate on
