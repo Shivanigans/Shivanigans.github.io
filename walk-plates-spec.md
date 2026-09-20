@@ -222,9 +222,46 @@ clips its geography to the wrong shape.
 
 ## Open
 
-- Pause circles are drawn as outlines and can disappear into the red line.
-  They now carry the pause data alone, so legibility matters more than it did.
-- Blocks bleed off the plate edge where the route runs close to it.
+Decisions waiting on Shivani:
+
+- **mcleodganj's title.** naddi has one ("Offgrid in naddi"); mcleodganj still
+  shows its Strava name. Captions are hers to write, never generated.
+- **Whether the distance line stays** on the card. The reference design shows
+  only a caption in the band; "4.20 km walked" was kept because distance was
+  asked for earlier and never withdrawn.
+- **How a moment is pinned** — to a time of day, or to a point along the path.
+  This decides the shape of the moments file.
+- **Whether photographs attach to moments** or sit in a pool for the walk.
+
+Known problems:
+
+- Pause circles are outlines and can disappear into the red line. They carry
+  the pause data alone now, so legibility matters more than it did.
 - Naddi's gap 4 (78 minutes, 124 m) is classed as unrecorded walking because
   it drifted just over the 100 m threshold. It was almost certainly a long
   rest, so that threshold may want raising.
+- Both plates being portrait means only two or three fit per row. With eight
+  or ten walks that makes a long page; turning only some walks would give the
+  layout more variety to pack with.
+- The repository is public. The plates are abstracted and fine, but raw GPX
+  files would publish one-second-resolution timestamps of where she was on
+  specific dates, so none are committed.
+
+Not built yet:
+
+- The moments file: the script knows every pause, dead end, recording gap and
+  reversal with a timestamp, but does not yet write them out for annotating.
+- The overlay's caption does not change as the walk plays; it holds the
+  walk's own caption throughout.
+- The photograph slots are empty frames and do not accept files.
+
+## Where this stands
+
+Everything described above is built, committed and pushed to
+`claude/eager-mayer-cj7uqi`. Two walks are rendered from real GPX and real
+OpenStreetMap data, and `walks.html` is the gallery.
+
+To pick this up: read this file, then `make_plates.py`, then `walks.html`.
+Run `python3 make_plates.py walks/*.gpx` to rebuild the plates. The script
+prints what it found and, for any walk without map data, a link to download
+it.
