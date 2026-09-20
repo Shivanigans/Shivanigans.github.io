@@ -1810,7 +1810,7 @@
   </g>
   <g id="caption">
     <line x1="0" y1="1014.36" x2="613.06" y2="1014.36" stroke="#655920" stroke-width="1.24"/>
-    <text x="306.53" y="1082.26" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.2" fill="#686136" text-anchor="middle">Walk to mcleodganj</text>
+    <text x="306.53" y="1082.26" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.2" font-weight="500" fill="#686136" text-anchor="middle">Walk to mcleodganj</text>
   </g>
   <g id="figures">
     <text x="306.53" y="1121.67" font-family="JetBrains Mono, ui-monospace, monospace" font-size="15.3" fill="#686136" text-anchor="middle" opacity="0.75">4.20 km walked</text>

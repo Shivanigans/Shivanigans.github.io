@@ -807,8 +807,8 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     y = rule_y + margin * 0.75 + size
     for line in lines:
         add(f'    <text x="{centre:.2f}" y="{y:.2f}" font-family="{FONT}" '
-            f'font-size="{size:.1f}" fill="{CAPTION}" text-anchor="middle">'
-            f'{escape(line)}</text>')
+            f'font-size="{size:.1f}" font-weight="500" fill="{CAPTION}" '
+            f'text-anchor="middle">{escape(line)}</text>')
         y += size * 1.5
     add('  </g>')
 

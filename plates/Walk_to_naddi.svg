@@ -4331,7 +4331,7 @@
   </g>
   <g id="caption">
     <line x1="0" y1="765.37" x2="1529.96" y2="765.37" stroke="#655920" stroke-width="1.88"/>
-    <text x="764.98" y="862.87" font-family="JetBrains Mono, ui-monospace, monospace" font-size="30.0" fill="#686136" text-anchor="middle">Offgrid in naddi</text>
+    <text x="764.98" y="862.87" font-family="JetBrains Mono, ui-monospace, monospace" font-size="30.0" font-weight="500" fill="#686136" text-anchor="middle">Offgrid in naddi</text>
   </g>
   <g id="figures">
     <text x="764.98" y="918.67" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21.6" fill="#686136" text-anchor="middle" opacity="0.75">10.74 km walked</text>
