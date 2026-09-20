@@ -19,6 +19,13 @@ layered SVG.
 
 ## Decisions
 
+**Orientation** — a walk can be turned on its plate, set per walk in
+`ROTATE`. Naddi is turned 90 degrees so it stands vertical rather than
+sprawling across a wide frame. A turned plate is no longer map-true, since
+north stops being up; it is a composition choice, not a correction. The walk
+and its map data turn together so they stay in register, and the download
+bounding box is still worked out from the unrotated ground.
+
 **Frame** — derived per walk, not fixed. The script multiplies the walk's
 footprint by the shared scale and adds margins plus the caption band.
 Orientation falls out of the footprint rather than being chosen. The earlier
@@ -200,8 +207,12 @@ and every card keeps its own proportions. A tall walk stays tall.
 
 Within a row the relative sizes are true, so a wider card is a longer walk.
 Between rows they are not, because each row takes its own scale. Row height
-is held between 340 and 760px, below which captions stop being readable and
-above which a lone card is blown up across the page.
+is held between 340 and 760px, and a row is given more height until even its
+narrowest card reaches 360px, below which the caption inside the plate stops
+being readable.
+
+Rows are centred, because a row of tall walks cannot fill the width at any
+sensible height.
 
 Each plate is a standalone file carrying the same layer names, so inlining
 several into one page collides their ids. The page renames them per plate on

@@ -77,6 +77,15 @@ MARGIN_SHARE, MARGIN_MIN, MARGIN_MAX = 0.07, 28, 90
 # does not read as a grid.
 TREE_EVERY_PX = 74
 
+# Turn a walk on the plate, in degrees anticlockwise, by walk name. A
+# rotated plate is no longer map-true - north stops being up - so this is
+# a composition choice, not a correction. The walk and its map data turn
+# together, so they stay in register with one another.
+#   {"Walk to naddi": 90}
+ROTATE = {
+    "Walk to naddi": 90,
+}
+
 CAPTIONS_FILE = "captions.json"
 OUT_DIR = "plates"
 
@@ -122,16 +131,27 @@ def reference_latitude(points):
     return sum(p[0] for p in points) / len(points)
 
 
-def project_point(lat, lon, mean_lat):
+def project_point(lat, lon, mean_lat, spin=0.0):
     squash = math.cos(math.radians(mean_lat))
-    return (math.radians(lon) * EARTH_R * squash, math.radians(lat) * EARTH_R)
+    return turn(math.radians(lon) * EARTH_R * squash,
+                math.radians(lat) * EARTH_R, spin)
 
 
-def to_metres(points, mean_lat=None):
+def turn(x, y, spin):
+    """Rotate a point about the origin. Everything on a plate is turned by
+    the same amount, so the walk and its buildings stay in register."""
+    if not spin:
+        return (x, y)
+    angle = math.radians(spin)
+    cos, sin = math.cos(angle), math.sin(angle)
+    return (x * cos - y * sin, x * sin + y * cos)
+
+
+def to_metres(points, mean_lat=None, spin=0.0):
     """Latitude/longitude to flat x/y metres. x east, y north."""
     if mean_lat is None:
         mean_lat = reference_latitude(points)
-    return [project_point(lat, lon, mean_lat) + (stamp, ele)
+    return [project_point(lat, lon, mean_lat, spin) + (stamp, ele)
             for lat, lon, stamp, ele in points]
 
 
@@ -504,7 +524,7 @@ def polygon_area(shape):
     return abs(total) / 2
 
 
-def read_map(path, mean_lat):
+def read_map(path, mean_lat, spin=0.0):
     """Read buildings and roads out of a GeoJSON file, in metres.
 
     Accepts what overpass-turbo exports. Anything it does not recognise is
@@ -518,7 +538,7 @@ def read_map(path, mean_lat):
     # Raw Overpass JSON, as the API hands it back with "out geom".
     if "elements" in data:
         for element in data["elements"]:
-            shape = [project_point(node["lat"], node["lon"], mean_lat)
+            shape = [project_point(node["lat"], node["lon"], mean_lat, spin)
                      for node in element.get("geometry") or []]
             if len(shape) < 2:
                 continue
@@ -543,7 +563,7 @@ def read_map(path, mean_lat):
 
         # GeoJSON is [longitude, latitude], the other way round to a GPX.
         def shape(ring):
-            return [project_point(point[1], point[0], mean_lat)
+            return [project_point(point[1], point[0], mean_lat, spin)
                     for point in ring if len(point) >= 2]
 
         into = wild if is_wild(props) else buildings
@@ -643,7 +663,8 @@ def escape(text):
 def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     _, raw = read_gpx(gpx_path)
     mean_lat = reference_latitude(raw)
-    track, dropped = drop_spikes(to_metres(raw, mean_lat))
+    spin = ROTATE.get(name, 0.0)
+    track, dropped = drop_spikes(to_metres(raw, mean_lat, spin))
     runs, gaps = split_on_gaps(track, name)
 
     # Pauses and reversals read from the cleaned but unsmoothed track;
@@ -716,7 +737,9 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     add(f'    <clipPath id="frame"><rect x="0" y="0" width="{plate_w:.2f}" '
         f'height="{art_h + margin * 2:.2f}"/></clipPath>')
     add('  </defs>')
-    add(f'  <!-- {name}: {say_distance(distance)} walked, {ascent:.0f} m climbed, '
+    add(f'  <!-- {name}: '
+        + (f'turned {spin:.0f} degrees, ' if spin else '')
+        + f'{say_distance(distance)} walked, {ascent:.0f} m climbed, '
         f'{len(pauses)} pauses, {len(reversals)} reversals, '
         f'{len(gaps)} recording gaps, {dropped} GPS spikes dropped, '
         f'{metres_per_pixel:.3f} m per pixel -->')
@@ -730,7 +753,7 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     buildings, roads, wild = [], [], []
     map_path = map_file_for(gpx_path)
     if os.path.exists(map_path):
-        buildings, roads, wild = read_map(map_path, mean_lat)
+        buildings, roads, wild = read_map(map_path, mean_lat, spin)
         buildings = [b for b in buildings if touches_frame(b, bounds, slack)]
         roads = [r for r in roads if touches_frame(r, bounds, slack)]
         wild = [w for w in wild if touches_frame(w, bounds, slack)]
@@ -867,12 +890,16 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
 
     # The bounding box to download map data for, padded a little so the
     # geography reaches the frame edges rather than stopping at the route.
-    pad = max(width_m, height_m) * 0.12
-    south = math.degrees((min_y - pad) / EARTH_R)
-    north = math.degrees((max_y + pad) / EARTH_R)
+    # Worked out from the unrotated ground, since a rotated plate still
+    # needs map data for where the walk really is.
+    flat = [project_point(p[0], p[1], mean_lat) for p in raw]
+    fx = [q[0] for q in flat]; fy = [q[1] for q in flat]
+    pad = max(max(fx) - min(fx), max(fy) - min(fy)) * 0.12
     squash = math.cos(math.radians(mean_lat))
-    west = math.degrees((min_x - pad) / (EARTH_R * squash))
-    east = math.degrees((max_x + pad) / (EARTH_R * squash))
+    south = math.degrees((min(fy) - pad) / EARTH_R)
+    north = math.degrees((max(fy) + pad) / EARTH_R)
+    west = math.degrees((min(fx) - pad) / (EARTH_R * squash))
+    east = math.degrees((max(fx) + pad) / (EARTH_R * squash))
 
     return "\n".join(parts), {
         "map": map_path if buildings or roads or wild else None,
@@ -910,7 +937,7 @@ def main(paths):
     longest_pause = 1.0
     for path in paths:
         name, raw = read_gpx(path)
-        track, _ = drop_spikes(to_metres(raw))
+        track, _ = drop_spikes(to_metres(raw, None, ROTATE.get(name, 0.0)))
         runs, gaps = split_on_gaps(track, name)
         points = [p for run in runs for p in smooth(run)]
         biggest = max(biggest,
