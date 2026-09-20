@@ -609,11 +609,28 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
 
     step = max(metres_per_pixel * DRAW_EVERY_PX, 1.0)
     drawn = [resample(smooth(run), step) for run in runs]
-    drawn = [run for run in drawn if len(run) >= 2]
+
+    # Join the recorded stretches back into continuous routes. Where
+    # recording stopped but you kept walking, the two ends are simply
+    # joined - a straight line, because that is all the data supports.
+    # Only a ride breaks the route, and that is drawn separately.
+    chains = []
+    chain = list(drawn[0])
+    for index, gap in enumerate(gaps):
+        if index + 1 >= len(drawn):
+            break
+        if gap["kind"] == "vehicle":
+            chains.append(chain)
+            chain = list(drawn[index + 1])
+        else:
+            chain.extend(drawn[index + 1])
+    chains.append(chain)
+    chains = [c for c in chains if len(c) >= 2]
+
     paces = [seg for run in drawn for seg in pace_segments(run)]
 
-    xs = [p[0] for run in drawn for p in run]
-    ys = [p[1] for run in drawn for p in run]
+    xs = [p[0] for run in chains for p in run]
+    ys = [p[1] for run in chains for p in run]
     min_x, max_x, min_y, max_y = min(xs), max(xs), min(ys), max(ys)
     width_m, height_m = max_x - min_x, max_y - min_y
 
@@ -691,7 +708,7 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
                 f'opacity="{dice.uniform(0.38, 0.78):.2f}"/>')
     else:
         # No map data for this walk, so fall back to abstract ground.
-        for block in make_blocks(drawn, max(width_m, height_m), name):
+        for block in make_blocks(chains, max(width_m, height_m), name):
             bx, by = place(block["x"], block["y"])
             bw, bh = block["w"] / metres_per_pixel, block["h"] / metres_per_pixel
             add(f'    <rect x="{bx - bw/2:.2f}" y="{by - bh/2:.2f}" '
@@ -721,28 +738,20 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
                 f'stroke-linecap="round"/>')
     add('  </g>')
 
-    # Gaps in recording, drawn so the route still reads as one journey.
-    # Dotted where you crossed it on foot and the phone simply was not
-    # watching; dashed where you rode, which is a different kind of
-    # absence and should not be mistaken for walking.
+    # Only a ride is drawn here. Gaps you walked are part of the path.
     add('  <g id="gaps">')
     for gap in gaps:
+        if gap["kind"] != "vehicle":
+            continue
         fx, fy = place(gap["from"][0], gap["from"][1])
         tx, ty = place(gap["to"][0], gap["to"][1])
-        if gap["kind"] == "vehicle":
-            style = (f'stroke-width="{stroke*0.5:.2f}" stroke-linecap="butt" '
-                     f'stroke-dasharray="{stroke*2.4:.2f} {stroke*1.5:.2f}" '
-                     f'opacity="0.6"')
-        else:
-            style = (f'stroke-width="{stroke*0.45:.2f}" stroke-linecap="round" '
-                     f'stroke-dasharray="{stroke*0.1:.2f} {stroke*1.5:.2f}" '
-                     f'opacity="0.75"')
         add(f'    <line x1="{fx:.2f}" y1="{fy:.2f}" x2="{tx:.2f}" y2="{ty:.2f}" '
-            f'stroke="{PATH}" {style}/>')
+            f'stroke="{PATH}" stroke-width="{stroke*0.55:.2f}" stroke-linecap="butt" '
+            f'stroke-dasharray="{stroke*2.4:.2f} {stroke*1.5:.2f}" opacity="0.65"/>')
     add('  </g>')
 
     add('  <g id="path">')
-    for index, run in enumerate(drawn):
+    for index, run in enumerate(chains):
         points = " ".join(f"{x:.2f},{y:.2f}"
                           for x, y in (place(p[0], p[1]) for p in run))
         add(f'    <polyline id="stretch-{index+1}" points="{points}" fill="none" '
@@ -764,8 +773,8 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         add(f'    <circle cx="{tx:.2f}" cy="{ty:.2f}" r="{dot*0.45:.2f}" fill="{PATH}"/>')
     add('  </g>')
 
-    start_x, start_y = place(drawn[0][0][0], drawn[0][0][1])
-    end_x, end_y = place(drawn[-1][-1][0], drawn[-1][-1][1])
+    start_x, start_y = place(chains[0][0][0], chains[0][0][1])
+    end_x, end_y = place(chains[-1][-1][0], chains[-1][-1][1])
     add('  <g id="endpoints">')
     add(f'    <circle cx="{start_x:.2f}" cy="{start_y:.2f}" r="{dot:.2f}" fill="{PATH}"/>')
     add(f'    <circle cx="{end_x:.2f}" cy="{end_y:.2f}" r="{dot:.2f}" fill="{PATH}"/>')
@@ -826,7 +835,7 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         "name": name, "distance": distance, "ascent": ascent,
         "footprint": (width_m, height_m), "plate": (plate_w, plate_h),
         "pauses": len(pauses), "reversals": len(reversals),
-        "stretches": len(drawn), "dropped": dropped,
+        "stretches": len(chains), "dropped": dropped,
         "gap_list": [{"number": g["number"], "kind": g["kind"],
                       "seconds": g["seconds"], "metres": g["metres"],
                       "at": g["from"][2].strftime("%H:%M")} for g in gaps],
