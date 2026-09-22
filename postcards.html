@@ -55,14 +55,16 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    /* Top and left match, as specified. The foot is given less, because
-       72px of nothing under the credits is what pushes the panel into
-       scrolling on a short screen. */
-    padding: var(--pad) 0 clamp(18px, 2.6vh, 44px) var(--pad);
+    /* 60px at the top, 72px on the left, and less at the foot, where
+       nothing sits and the extra only pushes the panel into scrolling. */
+    padding: clamp(24px, 3.2vw, 60px) 0 clamp(10px, 2.6vh, 44px) var(--pad);
     border-right: 1px solid var(--rule);
     overflow-y: auto;
   }
-  .intro .bottom { margin-top: auto; padding-top: 32px; }
+  /* margin-top:auto pushes this group to the foot and collects the slack
+     above it. The padding is only the minimum breathing room for when
+     there is no slack left to collect. */
+  .intro .bottom { margin-top: auto; padding-top: clamp(14px, 3vh, 34px); }
 
   h1 {
     font-family: "Array", "JetBrains Mono", ui-monospace, monospace;
@@ -115,7 +117,7 @@
 
   /* Sits under the legend, at the foot of the bottom group. */
   .colophon {
-    padding-top: clamp(16px, 2.4vh, 30px);
+    padding-top: clamp(10px, 2.4vh, 30px);
     font-size: 0.75rem;
     color: var(--soft);
   }
@@ -137,7 +139,7 @@
   .card {
     border: 0; padding: 0; background: none; font: inherit; color: inherit;
     display: block; cursor: pointer;
-    width: min(100%, 780px);
+    width: min(100%, 624px);
     scroll-snap-align: center;
     perspective: 2000px;
   }
