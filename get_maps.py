@@ -57,18 +57,34 @@ def looks_right(raw):
 
 
 def main():
-    target = sys.argv[1] if len(sys.argv) > 1 else 'walks'
+    where = [a for a in sys.argv[1:] if not a.startswith('-')]
+    target = where[0] if where else 'walks'
     files = sorted(glob.glob(os.path.join(target, '*.gpx')))
     if not files:
         print(f"No .gpx files found in {target}")
         return
 
+    # "refresh" re-fetches walks that already have a file, which is needed
+    # when the question being asked of OpenStreetMap has changed. Nothing
+    # is deleted first, and a file is only replaced once a good answer has
+    # arrived, so a failed attempt leaves what you already had alone.
+    refresh = "--refresh" in sys.argv
+
+    # --only=dog does just the walks whose name contains "dog", which is
+    # how you retry one that failed without asking Overpass for the lot.
+    only = None
+    for argument in sys.argv[1:]:
+        if argument.startswith("--only="):
+            only = argument.split("=", 1)[1].lower()
+
     folder = target if os.path.isdir(target) else os.path.dirname(target)
     jobs = []
     for path in files:
         name, pts = load_gpx(path)
+        if only and only not in name.lower():
+            continue
         want = os.path.join(folder, safe_name(name) + ".geojson")
-        if os.path.exists(want):
+        if os.path.exists(want) and not refresh:
             print(f"already have  {os.path.basename(want)}")
             continue
         jobs.append((name, want, bounding_box(pts)))

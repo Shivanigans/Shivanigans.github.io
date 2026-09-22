@@ -2,7 +2,7 @@
   "version": 0.6,
   "generator": "Overpass API 0.7.62.11 87bfad18",
   "osm3s": {
-    "timestamp_osm_base": "2026-09-22T11:08:54Z",
+    "timestamp_osm_base": "2026-09-22T11:59:42Z",
     "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
   },
   "elements": [
@@ -169,6 +169,66 @@
   "tags": {
     "highway": "residential",
     "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 188058935,
+  "bounds": {
+    "minlat": 28.4317811,
+    "minlon": 77.5170011,
+    "maxlat": 28.4329075,
+    "maxlon": 77.5182966
+  },
+  "nodes": [
+    1986845624,
+    1986845625,
+    1986845620,
+    1986845617,
+    1986845624
+  ],
+  "geometry": [
+    { "lat": 28.4325681, "lon": 77.5170011 },
+    { "lat": 28.4329075, "lon": 77.5179212 },
+    { "lat": 28.4321204, "lon": 77.5182966 },
+    { "lat": 28.4317811, "lon": 77.5173765 },
+    { "lat": 28.4325681, "lon": 77.5170011 }
+  ],
+  "tags": {
+    "leisure": "park"
+  }
+},
+{
+  "type": "way",
+  "id": 188058947,
+  "bounds": {
+    "minlat": 28.4316736,
+    "minlon": 77.5185759,
+    "maxlat": 28.4333818,
+    "maxlon": 77.5200049
+  },
+  "nodes": [
+    1986845626,
+    1986845627,
+    1986845618,
+    1986845616,
+    1986845619,
+    1986845623,
+    1986845621,
+    1986845626
+  ],
+  "geometry": [
+    { "lat": 28.4331216, "lon": 77.5185759 },
+    { "lat": 28.4333818, "lon": 77.5192569 },
+    { "lat": 28.4318871, "lon": 77.5200049 },
+    { "lat": 28.4316736, "lon": 77.5198709 },
+    { "lat": 28.4319877, "lon": 77.5193434 },
+    { "lat": 28.4324442, "lon": 77.5191285 },
+    { "lat": 28.4323559, "lon": 77.5189136 },
+    { "lat": 28.4331216, "lon": 77.5185759 }
+  ],
+  "tags": {
+    "leisure": "park"
   }
 },
 {

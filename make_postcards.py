@@ -17,7 +17,7 @@ It needs two extra libraries, installed once with:
     pip install pillow numpy
 """
 
-import sys, math, json, os, glob, unicodedata
+import sys, math, json, os, glob, random, unicodedata
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from urllib.parse import quote
@@ -41,6 +41,13 @@ RED    = (225, 58, 61)     # the walk itself
 INK    = (85, 85, 85)      # captions and the figures on the back
 FAINT  = (154, 147, 128)   # hairlines and the small labels on the back
 BLOCKS = (243, 181, 104)   # buildings and roads from OpenStreetMap
+GREEN  = (150, 166, 92)    # trees on parks, woods and other green ground
+
+# Green ground is drawn as scattered trees rather than a filled shape.
+# A park's outline says almost nothing, and a filled block of colour would
+# fight the walk for attention. Scattered trees show where the green
+# actually is, and where it stops. Roughly one tree per this many pixels.
+TREE_EVERY_PX = 62
 
 PATH_WIDTH = 10
 DOT_SIZE   = 16
@@ -341,6 +348,35 @@ def map_file_for(gpx_path, name=None):
 # What to ask OpenStreetMap for.
 OVERPASS = "https://overpass-api.de/api/interpreter"
 
+# Green ground, in OpenStreetMap's own vocabulary. A park, a wood and a
+# patch of scrub are all tagged differently, so all of them have to be
+# asked for by name.
+WILD_NATURAL = "wood|scrub|heath|grassland|water|wetland|tree_row"
+WILD_LANDUSE = ("forest|meadow|grass|orchard|farmland|village_green|"
+                "recreation_ground|allotments")
+WILD_LEISURE = "park|garden|nature_reserve|common"
+
+
+def overpass_query(box, pad=0.12):
+    """The question to ask OpenStreetMap about one walk's patch of world.
+
+    "nwr" means node, way and relation. Big parks and woods are usually
+    mapped as relations rather than simple ways, so asking only for ways
+    misses them completely.
+    """
+    south, west, north, east = box
+    gap = max(north - south, east - west) * pad
+    area = (f"{south - gap:.5f},{west - gap:.5f},"
+            f"{north + gap:.5f},{east + gap:.5f}")
+    return (f'[out:json][timeout:240];('
+            f'way["building"]({area});'
+            f'way["highway"]({area});'
+            f'nwr["natural"~"^({WILD_NATURAL})$"]({area});'
+            f'nwr["landuse"~"^({WILD_LANDUSE})$"]({area});'
+            f'nwr["leisure"~"^({WILD_LEISURE})$"]({area});'
+            f'nwr["boundary"="protected_area"]({area});'
+            f');out geom;')
+
 
 def overpass_link(box, pad=0.12):
     """A ready-made link that downloads the map data for one walk.
@@ -348,20 +384,19 @@ def overpass_link(box, pad=0.12):
     Open it in a browser, wait for it to finish, and save what comes back
     next to the .gpx with the same name and a .geojson ending.
     """
-    south, west, north, east = box
-    height, width = north - south, east - west
-    gap = max(height, width) * pad
-    area = (f"{south - gap:.5f},{west - gap:.5f},"
-            f"{north + gap:.5f},{east + gap:.5f}")
-    query = (f'[out:json][timeout:240];('
-             f'way["building"]({area});'
-             f'way["highway"]({area});'
-             f');out geom;')
-    return OVERPASS + "?data=" + quote(query)
+    return OVERPASS + "?data=" + quote(overpass_query(box, pad))
+
+
+def is_green(tags):
+    """Is this patch of ground green rather than built?"""
+    return (tags.get("natural") in WILD_NATURAL.split("|")
+            or tags.get("landuse") in WILD_LANDUSE.split("|")
+            or tags.get("leisure") in WILD_LEISURE.split("|")
+            or tags.get("boundary") == "protected_area")
 
 
 def read_map(path, lat0):
-    """Pull buildings and roads out of a geojson file, in metres.
+    """Pull buildings, roads and green ground out of a geojson file.
 
     Understands both what overpass-turbo exports and the raw JSON the
     Overpass API hands back. Anything it does not recognise is skipped
@@ -370,19 +405,32 @@ def read_map(path, lat0):
     with open(path, encoding='utf-8') as handle:
         data = json.load(handle)
 
-    buildings, roads = [], []
+    buildings, roads, green = [], [], []
 
     # Raw Overpass JSON, as the API returns it with "out geom".
     if "elements" in data:
         for element in data["elements"]:
-            shape = [project(n["lat"], n["lon"], lat0)
-                     for n in element.get("geometry") or []]
             tags = element.get("tags") or {}
-            if tags.get("building") and len(shape) >= 3:
-                buildings.append(shape)
-            elif tags.get("highway") and len(shape) >= 2:
-                roads.append(shape)
-        return buildings, roads
+
+            # A way carries its own shape. A relation, which is how larger
+            # parks and woods are mapped, carries a list of members that
+            # each have one.
+            rings = []
+            if element.get("geometry"):
+                rings.append(element["geometry"])
+            for member in element.get("members") or []:
+                if member.get("geometry"):
+                    rings.append(member["geometry"])
+
+            for ring in rings:
+                shape = [project(n["lat"], n["lon"], lat0) for n in ring]
+                if tags.get("building") and len(shape) >= 3:
+                    buildings.append(shape)
+                elif is_green(tags) and len(shape) >= 3:
+                    green.append(shape)
+                elif tags.get("highway") and len(shape) >= 2:
+                    roads.append(shape)
+        return buildings, roads, green
 
     # A geojson export. Note that geojson writes coordinates the other way
     # round to a GPX: longitude first, then latitude.
@@ -397,14 +445,19 @@ def read_map(path, lat0):
         def shape(ring):
             return [project(p[1], p[0], lat0) for p in ring if len(p) >= 2]
 
+        into = green if is_green(props) else buildings
+
         if kind == "Polygon":
-            buildings.append(shape(coords[0]))
+            into.append(shape(coords[0]))
         elif kind == "MultiPolygon":
             for part in coords:
-                buildings.append(shape(part[0]))
+                into.append(shape(part[0]))
         elif kind == "LineString":
             line = shape(coords)
-            if props.get("building") and len(line) > 3:
+            # A closed shape comes through as a line, not a polygon.
+            if is_green(props) and len(line) > 3:
+                green.append(line)
+            elif props.get("building") and len(line) > 3:
                 buildings.append(line)
             elif props.get("highway"):
                 roads.append(line)
@@ -413,7 +466,64 @@ def read_map(path, lat0):
                 roads.append(shape(part))
 
     return ([b for b in buildings if len(b) >= 3],
-            [r for r in roads if len(r) >= 2])
+            [r for r in roads if len(r) >= 2],
+            [g for g in green if len(g) >= 3])
+
+
+def inside_shape(point, polygon):
+    """Is this point within the outline? Counts how many times a ray cast
+    sideways crosses the edge: an odd number means inside."""
+    x, y = point
+    hit = False
+    count = len(polygon)
+    for i in range(count):
+        x1, y1 = polygon[i]
+        x2, y2 = polygon[(i + 1) % count]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            hit = not hit
+    return hit
+
+
+def scatter_trees(green, bounds, spacing, seed):
+    """Place trees across the green ground that falls on the card.
+
+    Stepped over a grid and nudged off it at random, so the spacing does
+    not read as a pattern, and each is kept only if it lands inside one of
+    the green shapes. The seed is the walk's name, so a given walk always
+    grows the same trees instead of reshuffling them on every run.
+    """
+    if not green:
+        return []
+
+    dice = random.Random(str(seed) + "trees")
+    min_x, min_y, max_x, max_y = bounds
+    trees = []
+    y = min_y
+    while y <= max_y:
+        x = min_x
+        while x <= max_x:
+            spot = (x + dice.uniform(-0.38, 0.38) * spacing,
+                    y + dice.uniform(-0.38, 0.38) * spacing)
+            if any(inside_shape(spot, area) for area in green):
+                trees.append((spot[0], spot[1], dice.uniform(0.78, 1.25)))
+            x += spacing
+        y += spacing
+    return trees
+
+
+def draw_tree(d, x, y, size, colour, width):
+    """A small fir: two stacked tiers over a short trunk."""
+    d.line([(x, y - size),
+            (x + size * 0.52, y - size * 0.30),
+            (x + size * 0.30, y - size * 0.30),
+            (x + size * 0.68, y + size * 0.26),
+            (x - size * 0.68, y + size * 0.26),
+            (x - size * 0.30, y - size * 0.30),
+            (x - size * 0.52, y - size * 0.30),
+            (x, y - size)],
+           fill=colour, width=width, joint='curve')
+    d.line([(x, y + size * 0.16), (x, y + size * 0.16 + size * 0.30)],
+           fill=colour, width=width)
 
 
 def near_the_card(shape, centre, reach):
@@ -559,11 +669,20 @@ def draw_front(walk, mpp, caption, stats, paper, geography):
     # runs past the walk in every direction and would otherwise spill over
     # the cream border and through the caption.
     if geography:
-        buildings, roads = geography
+        buildings, roads, trees = geography
         layer = Image.new('RGBA', (W, H), BG + (255,))
         ld = ImageDraw.Draw(layer, 'RGBA')
 
-        # Roads first, so buildings sit on top of them.
+        # Trees first, so the town sits on top of the green rather than
+        # the other way round.
+        dice = random.Random(str(walk['name']) + "fade")
+        tree_size = PATH_WIDTH * 1.5 * S
+        for tx, ty, wobble in trees:
+            fade = int(255 * dice.uniform(0.5, 0.85))
+            draw_tree(ld, *px((tx, ty)), tree_size * wobble,
+                      GREEN + (fade,), max(1, int(PATH_WIDTH * 0.2 * S)))
+
+        # Then roads, then buildings on top of those.
         for shape in roads:
             ld.line([px(p) for p in shape], fill=BLOCKS + (170,),
                     width=max(1, int(PATH_WIDTH * 0.42 * S)),
@@ -779,15 +898,28 @@ def main():
         out_of_reach = False
         map_path = map_file_for(walk['file'], walk['name'])
         if SHOW_MAP and os.path.exists(map_path):
-            buildings, roads = read_map(map_path, walk['lat0'])
+            buildings, roads, green = read_map(map_path, walk['lat0'])
             # Only keep what is near enough to land on the card.
             reach = max(walk['span']) * 0.8 + 400
             buildings = [b for b in buildings
                          if near_the_card(b, walk['centre'], reach)]
             roads = [r for r in roads
                      if near_the_card(r, walk['centre'], reach)]
-            if buildings or roads:
-                geography = (buildings, roads)
+            green = [g for g in green
+                     if near_the_card(g, walk['centre'], reach)]
+
+            # Trees are scattered across the part of the card the walk
+            # occupies, then kept only where they land on green ground.
+            cx, cy = walk['centre']
+            half_w = (walk['span'][0] / 2) + mpp * 260
+            half_h = (walk['span'][1] / 2) + mpp * 260
+            trees = scatter_trees(
+                green,
+                (cx - half_w, cy - half_h, cx + half_w, cy + half_h),
+                mpp * TREE_EVERY_PX, walk['name'])
+
+            if buildings or roads or trees:
+                geography = (buildings, roads, trees)
             else:
                 # The file exists but covers somewhere else entirely.
                 out_of_reach = True
@@ -813,8 +945,8 @@ def main():
         print(f"  1 pixel = {mpp:.2f} m")
         if geography:
             print(f"  map: {len(geography[0])} buildings, "
-                  f"{len(geography[1])} roads from "
-                  f"{os.path.basename(map_path)}")
+                  f"{len(geography[1])} roads, {len(geography[2])} trees "
+                  f"from {os.path.basename(map_path)}")
         elif out_of_reach:
             print(f"  map: {os.path.basename(map_path)} covers somewhere "
                   f"else, nothing reached this walk")
