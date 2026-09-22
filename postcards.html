@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walks as Postcards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* One deliberate look, painted explicitly, so the page never borrows
+     whatever colours the browser happens to prefer. */
+  :root {
+    --page:   #efefdf;   /* the pale surface the cards lie on */
+    --ink:    #565658;
+    --rule:   #1b1b18;
+    --accent: #e13a3d;
+    --gutter: clamp(16px, 5vw, 72px);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .inset { max-width: 1320px; margin: 0 auto; padding-inline: var(--gutter); }
+
+  header { padding-block: clamp(48px, 8vw, 104px) clamp(28px, 5vw, 56px); }
+  h1 {
+    font-size: clamp(3rem, 11vw, 6.5rem);
+    font-weight: 400; letter-spacing: -0.02em; line-height: 1;
+    margin: 0 0 clamp(20px, 3vw, 36px);
+  }
+  .standfirst {
+    font-size: clamp(1rem, 2.2vw, 1.5rem);
+    line-height: 1.5; margin: 0; max-width: 28ch;
+    text-wrap: balance;
+  }
+  .hint { font-size: 0.85rem; opacity: 0.55; margin: 18px 0 0; }
+  .divider { border: 0; border-top: 1.5px solid var(--rule); margin: 0; }
+
+  /* The cards. Two to a row on a wide screen, one on a phone. */
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: clamp(28px, 4vw, 56px);
+    padding-block: clamp(48px, 7vw, 96px) clamp(72px, 10vw, 140px);
+  }
+  @media (max-width: 520px) {
+    .gallery { grid-template-columns: 1fr; }
+  }
+
+  /* Each card is a button, so it works with a mouse, a finger and a
+     keyboard without any extra effort. */
+  .card {
+    border: 0; padding: 0; background: none; font: inherit; color: inherit;
+    display: block; width: 100%; cursor: pointer;
+    /* perspective is what makes the flip look like a real card turning
+       over rather than the picture simply squashing and stretching. */
+    perspective: 1800px;
+  }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 8px; }
+
+  .inner {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1350 / 1080;   /* the shape of the cards the script makes */
+    transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+  .card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+
+  .face {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    /* Hides whichever side is pointing away from you. */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.10), 0 18px 40px -22px rgba(0,0,0,0.45);
+  }
+  .face img { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .back { transform: rotateY(180deg); }
+
+  .label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 16px; margin-top: 14px;
+    font-size: 0.8rem; letter-spacing: 0.04em;
+  }
+  .label .turn { opacity: 0.5; }
+  .card:hover .label .turn { opacity: 1; color: var(--accent); }
+
+  .status { font-size: 0.85rem; opacity: 0.55; }
+
+  /* Some people find movement uncomfortable, so turn the card over
+     instantly for them instead. */
+  @media (prefers-reduced-motion: reduce) {
+    .inner { transition: none; }
+  }
+</style>
+</head>
+<body>
+<header class="inset">
+  <h1>Walks</h1>
+  <p class="standfirst">A documentation of walks and the shapes created on
+     the way.</p>
+  <p class="hint">Click a card to turn it over.</p>
+</header>
+<hr class="divider">
+
+<div class="inset">
+  <div class="gallery" id="gallery">
+    <p class="status">Loading the cards…</p>
+  </div>
+</div>
+
+<!-- The list of walks, written by make_postcards.py. Loaded as a script
+     rather than fetched, so this page also works when you just
+     double-click it rather than putting it on a web server. -->
+<script src="cards/gallery.js"></script>
+
+<script>
+// Where the script leaves everything it makes.
+const CARDS = "cards/";
+
+function build() {
+  const holder = document.getElementById("gallery");
+  const walks = window.WALKS;
+
+  if (!walks || !walks.length) {
+    holder.innerHTML =
+      '<p class="status">No cards found yet. Run <code>run.bat</code> ' +
+      'to make them.</p>';
+    return;
+  }
+
+  holder.innerHTML = "";
+
+  for (const walk of walks) {
+    // A button, because it is something you click, and that gives us
+    // keyboard support and screen reader support for free.
+    const card = document.createElement("button");
+    card.className = "card";
+    card.type = "button";
+    card.setAttribute("aria-pressed", "false");
+    card.setAttribute("aria-label", "Turn over the card for " + walk.caption);
+
+    card.innerHTML = `
+      <div class="inner">
+        <div class="face front">
+          <img src="${CARDS + walk.front}" alt="The shape of ${walk.caption}, drawn in red on yellow">
+        </div>
+        <div class="face back">
+          <img src="${CARDS + walk.back}" alt="The back of the card for ${walk.caption}, listing distance, duration and pauses">
+        </div>
+      </div>
+      <div class="label">
+        <span>${walk.caption}</span>
+        <span class="turn">${walk.distance} · turn over</span>
+      </div>`;
+
+    // Flip it. aria-pressed doubles as the record of which way up it is,
+    // so the CSS and assistive software agree with each other.
+    card.addEventListener("click", () => {
+      const flipped = card.getAttribute("aria-pressed") === "true";
+      card.setAttribute("aria-pressed", flipped ? "false" : "true");
+    });
+
+    holder.appendChild(card);
+  }
+}
+
+build();
+</script>
+</body>
+</html>

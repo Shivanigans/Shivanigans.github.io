@@ -1,0 +1,12 @@
+# Raw GPS traces from Strava. These hold your exact position, with a
+# timestamp roughly every second, so they stay on your computer and are
+# never published. The cards drawn from them carry no coordinates and are
+# safe to publish.
+*.gpx
+
+# Python's cache of compiled files. Rebuilt automatically, never worth
+# keeping.
+__pycache__/
+
+# Editor and tool settings belonging to this machine only.
+.claude/
