@@ -15,7 +15,7 @@ window.WALKS = [
     "front": "Walk_to_naddi-front.png",
     "back": "Walk_to_naddi-back.png",
     "date": "30052026",
-    "distance": "11.3 km",
+    "distance": "10.7 km",
     "duration": "7 h 07 min",
     "pauses": 57
   },

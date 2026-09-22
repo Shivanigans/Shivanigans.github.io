@@ -65,6 +65,14 @@ SHOW_PAUSES = True
 SLOW_SPEED     = 0.3    # metres per second, below this counts as standing
 PAUSE_MIN_SECS = 30     # stood still this long before it counts as a pause
 
+# Strava switches itself off to save battery. When it comes back, the two
+# ends are far apart and nobody knows what route was taken between them, so
+# that stretch is drawn as a dashed line rather than a straight solid one
+# pretending to be a path. If you covered it faster than VEHICLE_KMH you
+# were not walking, and it is left out of the distance.
+GAP_SECONDS = 45      # longer than this between two points means a break
+VEHICLE_KMH = 8.0     # faster than this across a break means a vehicle
+
 # Walks to leave out, by the name Strava gave them. The files stay where
 # they are, they are simply not drawn.
 SKIP = [
@@ -230,6 +238,29 @@ def pause_runs(walk):
     return out
 
 
+def split_on_gaps(walk):
+    """Break the walk wherever Strava stopped recording.
+
+    Gives back the stretches that were actually recorded, and the jumps
+    between them. A jump is marked as a vehicle if you covered it faster
+    than walking pace, which is the only way to tell from the data that
+    you were not on foot.
+    """
+    xy, pts = walk['xy'], walk['pts']
+    runs, jumps, start = [], [], 0
+    for i in range(1, len(xy)):
+        secs = (pts[i][2] - pts[i - 1][2]).total_seconds()
+        if secs > GAP_SECONDS:
+            runs.append((start, i - 1))
+            metres = math.dist(xy[i - 1], xy[i])
+            kmh = metres / secs * 3.6 if secs > 0 else 0.0
+            jumps.append({'from': i - 1, 'to': i, 'metres': metres,
+                          'seconds': secs, 'vehicle': kmh > VEHICLE_KMH})
+            start = i
+    runs.append((start, len(xy) - 1))
+    return [r for r in runs if r[1] > r[0]], jumps
+
+
 def local(when):
     """A GPX time turned into your local time."""
     return when + timedelta(hours=TZ_OFFSET_HOURS)
@@ -240,8 +271,17 @@ def walk_stats(walk):
     xy, pts = walk['xy'], walk['pts']
     pauses = pause_runs(walk)
     stood = [secs for _, _, secs in pauses]
+    runs, jumps = split_on_gaps(walk)
+
+    # What was recorded, plus the gaps you walked but Strava missed. A
+    # stretch you rode is not distance you walked, so it is left out.
+    metres = sum(math.dist(xy[i - 1], xy[i])
+                 for a, b in runs for i in range(a + 1, b + 1))
+    metres += sum(j['metres'] for j in jumps if not j['vehicle'])
+
     return {
-        'metres':   sum(math.dist(xy[i - 1], xy[i]) for i in range(1, len(xy))),
+        'metres':   metres,
+        'ridden':   sum(j['metres'] for j in jumps if j['vehicle']),
         'seconds':  (pts[-1][2] - pts[0][2]).total_seconds(),
         'pauses':   len(pauses),
         'still':    sum(stood),
@@ -459,6 +499,23 @@ def lay_paper(img, paper):
 # Drawing text
 # ---------------------------------------------------------------------------
 
+def dashed_line(d, start, end, fill, width, dash, space):
+    """A dashed straight line. Pillow only draws solid ones, so the dashes
+    are stepped along the line by hand."""
+    span = math.dist(start, end)
+    if span <= 0:
+        return
+    dx = (end[0] - start[0]) / span
+    dy = (end[1] - start[1]) / span
+    along = 0.0
+    while along < span:
+        stop = min(along + dash, span)
+        d.line([(start[0] + dx * along, start[1] + dy * along),
+                (start[0] + dx * stop, start[1] + dy * stop)],
+               fill=fill, width=width)
+        along += dash + space
+
+
 def draw_spaced(d, xy, text, font, fill, spacing):
     """Draw text with extra air between the letters.
 
@@ -524,7 +581,16 @@ def draw_front(walk, mpp, caption, stats, paper, geography):
     P = [px(p) for p in walk['xy']]
     lw = PATH_WIDTH * S
 
-    d.line(P, fill=RED, width=lw, joint='curve')
+    # The walk is drawn in the pieces Strava actually recorded. Where it
+    # switched off, a dashed line crosses the gap instead, because the real
+    # route between those two points is not known and a solid line there
+    # would look like a path you took.
+    runs, jumps = split_on_gaps(walk)
+    for a, b in runs:
+        d.line(P[a:b + 1], fill=RED, width=lw, joint='curve')
+    for jump in jumps:
+        dashed_line(d, P[jump['from']], P[jump['to']], RED,
+                    max(1, int(lw * 0.62)), lw * 2.2, lw * 1.6)
 
     # Pause dots, drawn see-through so overlapping ones still read.
     if SHOW_PAUSES:
@@ -541,10 +607,14 @@ def draw_front(walk, mpp, caption, stats, paper, geography):
         img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
         d = ImageDraw.Draw(img)
 
-    # Where you set off and where you stopped.
+    # An empty circle where you set off, a filled one where you finished.
+    # Two different marks, because two identical dots leave no way of
+    # telling which end of the walk you are looking at.
     r = DOT_SIZE * S
-    for q in (P[0], P[-1]):
-        d.ellipse([q[0] - r, q[1] - r, q[0] + r, q[1] + r], fill=RED)
+    first, last = P[0], P[-1]
+    d.ellipse([first[0] - r, first[1] - r, first[0] + r, first[1] + r],
+              fill=BG, outline=RED, width=max(1, int(lw * 0.6)))
+    d.ellipse([last[0] - r, last[1] - r, last[0] + r, last[1] + r], fill=RED)
 
     # The caption strip: a hairline, then the place on the left and the
     # date on the right.
@@ -734,6 +804,12 @@ def main():
         print(f"  {say_distance(stats['metres'])} in "
               f"{say_duration(stats['seconds'])}, {stats['pauses']} pauses, "
               f"{say_minutes(stats['still'])} stood still")
+        runs, jumps = split_on_gaps(walk)
+        if jumps:
+            ridden = [j for j in jumps if j['vehicle']]
+            note = (f", of which {say_distance(stats['ridden'])} ridden "
+                    f"and left out" if ridden else "")
+            print(f"  {len(jumps)} recording gaps, drawn dashed{note}")
         print(f"  1 pixel = {mpp:.2f} m")
         if geography:
             print(f"  map: {len(geography[0])} buildings, "
