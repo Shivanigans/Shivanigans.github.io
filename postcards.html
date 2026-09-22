@@ -14,7 +14,7 @@
   /* One deliberate look, every colour painted explicitly, so the page
      never borrows whatever the browser happens to prefer. */
   :root {
-    --page:   #efefdf;   /* the pale sage the cards lie on */
+    --page:   #ffffff;   /* the white the cards lie on */
     --ink:    #565658;
     --soft:   #8a8a83;   /* the same ink, stepped back for small print */
     /* Both rules in the left panel are the text colour at a fraction of
@@ -55,7 +55,10 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: var(--pad) 0 var(--pad) var(--pad);
+    /* Top and left match, as specified. The foot is given less, because
+       72px of nothing under the credits is what pushes the panel into
+       scrolling on a short screen. */
+    padding: var(--pad) 0 clamp(18px, 2.6vh, 44px) var(--pad);
     border-right: 1px solid var(--rule);
     overflow-y: auto;
   }
@@ -207,9 +210,8 @@
       <p>Any distance is walkable if you put your mind to it.</p>
 
       <p>Walks from life is an ongoing documentation project where I attempt
-         to capture the eccentricities of a walk through their shape.</p>
-
-      <p class="creed">The steps don't matter, the characteristics do.</p>
+         to capture the eccentricities of a walk through their shape. The
+         steps don't matter, the characteristics do.</p>
 
       <p class="sign">- Shivani,<br>serial walker</p>
     </div>
@@ -256,9 +258,13 @@ const LEGEND = [
   { swatch: `<svg width="46" height="14" aria-hidden="true">
                <circle cx="10" cy="7" r="5.5" fill="none"
                        stroke="#e13a3d" stroke-width="2.6"/>
-               <circle cx="34" cy="7" r="6" fill="#e13a3d"/>
              </svg>`,
-    label: "start and end" },
+    label: "start" },
+
+  { swatch: `<svg width="46" height="14" aria-hidden="true">
+               <circle cx="10" cy="7" r="6" fill="#e13a3d"/>
+             </svg>`,
+    label: "end" },
 
   { swatch: `<svg width="46" height="20" aria-hidden="true">
                <circle cx="7"  cy="10" r="3.5" fill="#e13a3d" opacity="0.55"/>
