@@ -10,3 +10,9 @@ __pycache__/
 
 # Editor and tool settings belonging to this machine only.
 .claude/
+
+# The full size card PNGs. These are yours to print and share, and stay on
+# your computer. The site only needs the .webp copies beside them, which
+# are a seventh of the weight. Noise does not compress, so committing the
+# PNGs added about 54 MB to the repository's history on every run.
+cards/*.png
