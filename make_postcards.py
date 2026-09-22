@@ -103,7 +103,15 @@ BLOTCH     = 0.045    # soft uneven tone
 FIBRES     = 300      # number of faint paper fibres
 PAPER_SEED = 7        # same number = identical paper on every card
 
-CAPTIONS_FILE = "captions.json"   # {"Strava track name": "your caption"}
+# Type sizes on the card, in points at the card's own size. Text is fitted
+# down until it fits its space, but never below MIN_FONT, so nothing on a
+# card is ever too small to read.
+STRIP_FONT = 38       # caption and location on the front
+HEAD_FONT  = 46       # the caption again, heading the back
+HEAD_LINES = 3        # how many lines that heading may run to
+MIN_FONT   = 12       # the floor, for every piece of fitted text
+
+CAPTIONS_FILE = "captions.json"   # your own captions and locations
 OUT_DIR       = "cards"
 SUPERSAMPLE   = 3     # draw big then shrink, so the lines come out smooth
 # ---------------------------------------------------------------------------
@@ -122,20 +130,72 @@ def load_font(size):
     return ImageFont.load_default()
 
 
-def fit_font(d, text, max_width, start_size, min_size=14):
-    """The largest font size that still keeps text inside max_width.
+def shared_size(items, start, floor=MIN_FONT):
+    """One type size that suits every card.
 
-    Captions are yours to write and some will be longer than others, so
-    rather than letting a long one run off the card, it is stepped down
-    until it fits.
+    If each card fitted its own caption, a short one would draw large and
+    a long one small, and the gallery would look uneven. So the tightest
+    case decides the size and every card uses it.
+
+    `items` is a list of (text, room) pairs measured in the card's own
+    points, not the supersampled ones used for drawing. The size never
+    goes below `floor`, so nothing on a card becomes unreadable; if even
+    that does not fit, the caller is told so it can say so out loud.
     """
-    size = int(start_size)
-    while size > min_size:
+    ruler = ImageDraw.Draw(Image.new('RGB', (1, 1)))
+    wanted = [(t, room) for t, room in items if t]
+    size = int(start)
+    while size > floor:
         font = load_font(size)
-        if d.textlength(text, font=font) <= max_width:
-            return font
-        size -= 2
-    return load_font(int(min_size))
+        if all(ruler.textlength(t, font=font) <= room for t, room in wanted):
+            return size
+        size -= 1
+    return floor
+
+
+def wrap_text(ruler, text, font, room):
+    """Break text into lines that each fit inside room."""
+    lines, line = [], ""
+    for word in text.split():
+        trial = (line + " " + word).strip()
+        if line and ruler.textlength(trial, font=font) > room:
+            lines.append(line)
+            line = word
+        else:
+            line = trial
+    if line:
+        lines.append(line)
+    return lines or [""]
+
+
+def shared_wrapped_size(texts, room, start, max_lines, floor=MIN_FONT):
+    """One size for a caption that is allowed to run onto several lines.
+
+    Squeezing a long caption onto a single line makes it smaller than the
+    figures underneath it, which reads as an accident. Letting it wrap
+    keeps it the heading it is meant to be.
+    """
+    ruler = ImageDraw.Draw(Image.new('RGB', (1, 1)))
+    size = int(start)
+    while size > floor:
+        font = load_font(size)
+        if all(len(wrap_text(ruler, t, font, room)) <= max_lines
+               for t in texts if t):
+            return size
+        size -= 1
+    return floor
+
+
+def strip_rooms():
+    """How much of the front's caption strip each end gets.
+
+    The caption is given the larger share and the location the smaller,
+    with a gap between so the two never meet in the middle.
+    """
+    left = BORDER + INSET * 0.55
+    right = CARD_W - BORDER - INSET * 0.55
+    span = right - left
+    return left, right, span * 0.60, span * 0.34
 
 
 # ---------------------------------------------------------------------------
@@ -642,7 +702,8 @@ def draw_spaced(d, xy, text, font, fill, spacing):
 # The front of the card
 # ---------------------------------------------------------------------------
 
-def draw_front(walk, mpp, caption, location, stats, paper, geography):
+def draw_front(walk, mpp, caption, location, stats, paper, geography,
+               strip_size):
     S = SUPERSAMPLE
     W, H = CARD_W * S, CARD_H * S
 
@@ -736,25 +797,17 @@ def draw_front(walk, mpp, caption, location, stats, paper, geography):
               fill=BG, outline=RED, width=max(1, int(lw * 0.6)))
     d.ellipse([last[0] - r, last[1] - r, last[0] + r, last[1] + r], fill=RED)
 
-    # The caption strip. The yellow ending against the cream is the only
-    # line needed here, so nothing is drawn to separate them.
-    font = load_font(int(38 * S))
+    # The caption strip: caption at one end, location at the other, and
+    # nothing else on the front. The yellow ending against the cream is
+    # the only line needed, so nothing is drawn to separate them. Both are
+    # set at the size worked out across every card, so the captions match
+    # from one postcard to the next.
+    font = load_font(int(strip_size * S))
     base = (strip_y + STRIP_H * 0.63) * S
-    left = (BORDER + INSET * 0.55) * S
-    right = (CARD_W - BORDER - INSET * 0.55) * S
-
-    # Caption at one end, location at the other, and nothing else on the
-    # front. The location is given whatever room it needs, and the caption
-    # takes what is left over, less a gap so the two never touch.
+    left, right, _, _ = strip_rooms()
+    d.text((left * S, base), caption, fill=INK, font=font, anchor='ls')
     if location:
-        place_font = fit_font(d, location, (right - left) * 0.45, 38 * S)
-        d.text((right, base), location, fill=INK, font=place_font,
-               anchor='rs')
-        room = (right - left) - d.textlength(location, font=place_font) - 34 * S
-    else:
-        room = right - left
-    d.text((left, base), caption, fill=INK,
-           font=fit_font(d, caption, room, 38 * S), anchor='ls')
+        d.text((right * S, base), location, fill=INK, font=font, anchor='rs')
 
     img = img.resize((CARD_W, CARD_H), Image.LANCZOS)
     return lay_paper(img, paper)
@@ -764,11 +817,15 @@ def draw_front(walk, mpp, caption, location, stats, paper, geography):
 # The back of the card
 # ---------------------------------------------------------------------------
 
-def draw_back(caption, stats, paper):
+def draw_back(caption, location, stats, paper, head_size):
     """Postcard paper, a divider, and the walk's figures on the right.
 
     The whole left half is left empty on purpose. That is the space for
     photographs later, so nothing is drawn into it.
+
+    No date and no times. They are the one thing here that would say where
+    somebody was at a given moment, and the card is about the shape of a
+    walk rather than a record of when it happened.
     """
     S = SUPERSAMPLE
     W, H = CARD_W * S, CARD_H * S
@@ -795,11 +852,27 @@ def draw_back(caption, stats, paper):
 
     label_font = load_font(int(19 * S))
     value_font = load_font(int(32 * S))
+    place_font = load_font(int(max(MIN_FONT, 22) * S))
     spacing = 3.2 * S
 
-    y = BORDER + INSET + 34
-    heading = fit_font(d, caption, (rx1 - rx0) * S, 46 * S)
-    d.text((rx0 * S, y * S), caption, fill=INK, font=heading, anchor='ls')
+    # The caption heads the card, running onto a second or third line if
+    # it is long, rather than shrinking until it is smaller than the
+    # figures below it.
+    head_font = load_font(int(head_size * S))
+    ruler = ImageDraw.Draw(Image.new('RGB', (1, 1)))
+    lines = wrap_text(ruler, caption, load_font(int(head_size)), rx1 - rx0)
+
+    top = BORDER + INSET + 34
+    y = top
+    for line in lines:
+        d.text((rx0 * S, y * S), line, fill=INK, font=head_font, anchor='ls')
+        y += head_size * 1.18
+
+    # The location sits under the caption rather than among the figures,
+    # because it says where the walk was, not how it went.
+    if location:
+        d.text((rx0 * S, (y + 12) * S), location, fill=FAINT,
+               font=place_font, anchor='ls')
 
     rows = [
         ("distance",      say_distance(stats['metres'])),
@@ -807,14 +880,12 @@ def draw_back(caption, stats, paper):
         ("pauses",        str(stats['pauses'])),
         ("stood still",   say_minutes(stats['still'])),
         ("longest pause", say_minutes(stats['longest'])),
-        ("date",          stats['started'].strftime('%d%m%Y')),
-        ("time",          stats['started'].strftime('%H:%M') + " to "
-                          + stats['finished'].strftime('%H:%M')),
     ]
 
-    # Share the leftover height out evenly, so the rows always fit however
-    # many there are.
-    rows_top = y + 76
+    # The rows start in the same place on every card, whether the caption
+    # above took one line or three, so the backs line up as a set rather
+    # than each finding its own position.
+    rows_top = top + head_size * 1.18 * HEAD_LINES + (34 if location else 0) + 46
     rows_bottom = CARD_H - BORDER - INSET
     row_h = (rows_bottom - rows_top) / len(rows)
 
@@ -903,6 +974,34 @@ def main():
     missing_maps = []
     missing_places = []
 
+    # Work out one caption size for the whole set before drawing anything,
+    # so a short caption and a long one are set at the same size and the
+    # gallery reads evenly.
+    written = []
+    for walk in walks:
+        entry = captions.get(walk['name'], {})
+        written.append((entry.get("caption") or walk['name'],
+                        entry.get("location") or ""))
+
+    _, _, cap_room, place_room = strip_rooms()
+    strip_size = shared_size(
+        [(c, cap_room) for c, p in written] + [(p, place_room) for c, p in written],
+        STRIP_FONT)
+
+    # The back's caption may run onto three lines, so it keeps a proper
+    # heading size instead of shrinking to fit the narrow right half.
+    head_room = (CARD_W - CARD_W // 2 - INSET) - BORDER - INSET
+    head_size = shared_wrapped_size([c for c, p in written], head_room,
+                                    HEAD_FONT, max_lines=HEAD_LINES)
+
+    print(f"Caption size across every card: {strip_size} pt on the front, "
+          f"{head_size} pt on the back")
+    if strip_size <= MIN_FONT or head_size <= MIN_FONT:
+        longest = max(written, key=lambda w: len(w[0]))[0]
+        print(f"  That is the floor. Shortening the longest caption would "
+              f"let every card breathe:\n  \"{longest}\"")
+    print()
+
     shared = None
     if SCALE_MODE == 'shared':
         shared = max(metres_per_px(w['span']) for w in walks)
@@ -958,9 +1057,9 @@ def main():
         elif SHOW_MAP:
             missing_maps.append(walk)
 
-        draw_front(walk, mpp, caption, location, stats, paper,
-                   geography).save(os.path.join(OUT_DIR, front_file))
-        draw_back(caption, stats, paper).save(
+        draw_front(walk, mpp, caption, location, stats, paper, geography,
+                   strip_size).save(os.path.join(OUT_DIR, front_file))
+        draw_back(caption, location, stats, paper, head_size).save(
             os.path.join(OUT_DIR, back_file))
 
         print(f"{walk['name']}")

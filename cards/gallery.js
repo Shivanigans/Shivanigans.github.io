@@ -57,7 +57,7 @@ window.WALKS = [
   {
     "name": "Walking with a dog",
     "caption": "Walking with a dog",
-    "location": "Greater Noida, India",
+    "location": "Greatest Noida, India",
     "front": "Walking_with_a_dog-front.png",
     "back": "Walking_with_a_dog-back.png",
     "date": "12062026",
@@ -68,7 +68,7 @@ window.WALKS = [
   {
     "name": "Dog walked me",
     "caption": "Dog walked me",
-    "location": "Greater Noida, India",
+    "location": "Greatest Noida, India",
     "front": "Dog_walked_me-front.png",
     "back": "Dog_walked_me-back.png",
     "date": "14062026",
