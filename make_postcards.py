@@ -642,16 +642,19 @@ def draw_spaced(d, xy, text, font, fill, spacing):
 # The front of the card
 # ---------------------------------------------------------------------------
 
-def draw_front(walk, mpp, caption, stats, paper, geography):
+def draw_front(walk, mpp, caption, location, stats, paper, geography):
     S = SUPERSAMPLE
     W, H = CARD_W * S, CARD_H * S
 
     img = Image.new('RGB', (W, H), CREAM)
     d = ImageDraw.Draw(img)
+    strip_y = CARD_H - BORDER - STRIP_H
 
-    # The yellow ground, sitting inside the cream border.
+    # The yellow ground. The cream runs right round it as a thin border,
+    # and keeps going at the bottom as the wider strip the caption sits
+    # on, the way a printed postcard carries its title.
     d.rectangle([BORDER * S, BORDER * S,
-                 (CARD_W - BORDER) * S, (CARD_H - BORDER) * S], fill=BG)
+                 (CARD_W - BORDER) * S, strip_y * S], fill=BG)
 
     # Work out where each point of the walk lands on the card.
     cx, cy = walk['centre']
@@ -661,8 +664,6 @@ def draw_front(walk, mpp, caption, stats, paper, geography):
     def px(p):
         return (((p[0] - cx) / mpp + mid_x) * S,
                 (mid_y - (p[1] - cy) / mpp) * S)
-
-    strip_y = CARD_H - BORDER - STRIP_H
 
     # Buildings and roads, if this walk has any. They are drawn on a layer
     # of their own and then cropped to the picture area, because map data
@@ -735,23 +736,25 @@ def draw_front(walk, mpp, caption, stats, paper, geography):
               fill=BG, outline=RED, width=max(1, int(lw * 0.6)))
     d.ellipse([last[0] - r, last[1] - r, last[0] + r, last[1] + r], fill=RED)
 
-    # The caption strip: a hairline, then the place on the left and the
-    # date on the right.
-    d.line([(BORDER * S, strip_y * S), ((CARD_W - BORDER) * S, strip_y * S)],
-           fill=FAINT, width=max(1, int(1.5 * S)))
-
+    # The caption strip. The yellow ending against the cream is the only
+    # line needed here, so nothing is drawn to separate them.
     font = load_font(int(38 * S))
     base = (strip_y + STRIP_H * 0.63) * S
     left = (BORDER + INSET * 0.55) * S
     right = (CARD_W - BORDER - INSET * 0.55) * S
 
-    # The date is fixed width, so the caption gets whatever is left over,
-    # less a gap so the two never touch.
-    date_text = stats['started'].strftime('%d%m%Y')
-    room = (right - left) - d.textlength(date_text, font=font) - 30 * S
+    # Caption at one end, location at the other, and nothing else on the
+    # front. The location is given whatever room it needs, and the caption
+    # takes what is left over, less a gap so the two never touch.
+    if location:
+        place_font = fit_font(d, location, (right - left) * 0.45, 38 * S)
+        d.text((right, base), location, fill=INK, font=place_font,
+               anchor='rs')
+        room = (right - left) - d.textlength(location, font=place_font) - 34 * S
+    else:
+        room = right - left
     d.text((left, base), caption, fill=INK,
            font=fit_font(d, caption, room, 38 * S), anchor='ls')
-    d.text((right, base), date_text, fill=INK, font=font, anchor='rs')
 
     img = img.resize((CARD_W, CARD_H), Image.LANCZOS)
     return lay_paper(img, paper)
@@ -834,10 +837,33 @@ def draw_back(caption, stats, paper):
 # ---------------------------------------------------------------------------
 
 def load_captions():
-    if os.path.exists(CAPTIONS_FILE):
-        with open(CAPTIONS_FILE, encoding='utf-8') as f:
-            return json.load(f)
-    return {}
+    """Your own list of captions and locations, keyed by Strava name.
+
+    Each walk is written as:
+
+        "Walk to mcleodganj": {
+          "caption":  "Walk to mcleodganj",
+          "location": "Dharamsala, India"
+        }
+
+    Nothing here is worked out automatically. The location in particular
+    is yours to write, so it says a city and a country and never gives
+    away a street or a neighbourhood. A walk with no entry falls back to
+    its Strava name and shows no location at all.
+    """
+    if not os.path.exists(CAPTIONS_FILE):
+        return {}
+    with open(CAPTIONS_FILE, encoding='utf-8') as f:
+        raw = json.load(f)
+
+    tidy = {}
+    for name, entry in raw.items():
+        if isinstance(entry, str):        # the older caption-only format
+            tidy[name] = {"caption": entry, "location": ""}
+        else:
+            tidy[name] = {"caption": entry.get("caption") or name,
+                          "location": entry.get("location") or ""}
+    return tidy
 
 
 def safe_name(name):
@@ -875,6 +901,7 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     paper = paper_texture(CARD_W, CARD_H, PAPER_SEED) if PAPER else None
     missing_maps = []
+    missing_places = []
 
     shared = None
     if SCALE_MODE == 'shared':
@@ -886,8 +913,12 @@ def main():
         mpp = shared or metres_per_px(walk['span'])
         stats = walk_stats(walk)
 
-        # Captions are yours to write, and always lowercase.
-        caption = captions.get(walk['name'], walk['name']).lower()
+        # Captions and locations are yours to write, exactly as written.
+        entry = captions.get(walk['name'], {})
+        caption = entry.get("caption") or walk['name']
+        location = entry.get("location") or ""
+        if not location:
+            missing_places.append(walk['name'])
 
         stem = safe_name(walk['name'])
         front_file = f"{stem}-front.png"
@@ -927,8 +958,8 @@ def main():
         elif SHOW_MAP:
             missing_maps.append(walk)
 
-        draw_front(walk, mpp, caption, stats, paper, geography).save(
-            os.path.join(OUT_DIR, front_file))
+        draw_front(walk, mpp, caption, location, stats, paper,
+                   geography).save(os.path.join(OUT_DIR, front_file))
         draw_back(caption, stats, paper).save(
             os.path.join(OUT_DIR, back_file))
 
@@ -957,6 +988,7 @@ def main():
         gallery.append({
             "name": walk['name'],
             "caption": caption,
+            "location": location,
             "front": front_file,
             "back": back_file,
             "date": stats['started'].strftime('%d%m%Y'),
@@ -971,11 +1003,20 @@ def main():
     # server. A .js file loads either way, so postcards.html works when you
     # double-click it and when it is live.
     listing = os.path.join(OUT_DIR, 'gallery.js')
+    updated = datetime.now().strftime('%d %b %Y').lower()
     with open(listing, 'w', encoding='utf-8') as f:
         f.write("window.WALKS = ")
         json.dump(gallery, f, indent=2)
         f.write(";\n")
+        f.write(f'window.UPDATED = "{updated}";\n')
     print(f"Wrote {listing}, which postcards.html reads.")
+
+    if missing_places:
+        print(f"\n{len(missing_places)} walks have no location yet, so their "
+              f"cards show a caption only.")
+        print(f"Add one to {CAPTIONS_FILE} for each, as a city and country:")
+        for name in missing_places:
+            print(f'  "{name}"')
 
     if missing_maps:
         print(f"\n{'-' * 68}")

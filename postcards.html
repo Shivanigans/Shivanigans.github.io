@@ -3,173 +3,311 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Walks as Postcards</title>
+<title>Walks from life</title>
+<link rel="preconnect" href="https://api.fontshare.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Array, for the title only. Fontshare is the type foundry's own host. -->
+<link href="https://api.fontshare.com/v2/css?f[]=array@400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  /* One deliberate look, painted explicitly, so the page never borrows
-     whatever colours the browser happens to prefer. */
+  /* One deliberate look, every colour painted explicitly, so the page
+     never borrows whatever the browser happens to prefer. */
   :root {
-    --page:   #efefdf;   /* the pale surface the cards lie on */
+    --page:   #efefdf;   /* the pale sage the cards lie on */
     --ink:    #565658;
+    --soft:   #8a8a83;   /* the same ink, stepped back for small print */
     --rule:   #1b1b18;
     --accent: #e13a3d;
-    --gutter: clamp(16px, 5vw, 72px);
+    --left:   clamp(280px, 33vw, 460px);
+    --gutter: clamp(24px, 4vw, 64px);
     color-scheme: light;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0;
     background: var(--page);
     color: var(--ink);
     font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.65;
   }
-  .inset { max-width: 1320px; margin: 0 auto; padding-inline: var(--gutter); }
 
-  header { padding-block: clamp(48px, 8vw, 104px) clamp(28px, 5vw, 56px); }
-  h1 {
-    font-size: clamp(3rem, 11vw, 6.5rem);
-    font-weight: 400; letter-spacing: -0.02em; line-height: 1;
-    margin: 0 0 clamp(20px, 3vw, 36px);
-  }
-  .standfirst {
-    font-size: clamp(1rem, 2.2vw, 1.5rem);
-    line-height: 1.5; margin: 0; max-width: 28ch;
-    text-wrap: balance;
-  }
-  .hint { font-size: 0.85rem; opacity: 0.55; margin: 18px 0 0; }
-  .divider { border: 0; border-top: 1.5px solid var(--rule); margin: 0; }
-
-  /* The cards. Two to a row on a wide screen, one on a phone. */
-  .gallery {
+  /* ---- the two columns ------------------------------------------- */
+  /* The left third holds still and the right two thirds scroll, with a
+     thin rule between them. */
+  .spread {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-    gap: clamp(28px, 4vw, 56px);
-    padding-block: clamp(48px, 7vw, 96px) clamp(72px, 10vw, 140px);
-  }
-  @media (max-width: 520px) {
-    .gallery { grid-template-columns: 1fr; }
+    grid-template-columns: var(--left) minmax(0, 1fr);
+    height: 100%;
   }
 
-  /* Each card is a button, so it works with a mouse, a finger and a
-     keyboard without any extra effort. */
+  .intro {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(32px, 5vh, 64px) 0 clamp(24px, 4vh, 40px) var(--gutter);
+    border-right: 1px solid var(--rule);
+    overflow-y: auto;
+  }
+
+  h1 {
+    font-family: "Array", "JetBrains Mono", ui-monospace, monospace;
+    font-weight: 400;
+    font-size: clamp(2.6rem, 4.4vw, 4rem);
+    line-height: 0.98;
+    letter-spacing: 0.01em;
+    margin: 0 var(--gutter) clamp(24px, 3vh, 36px) 0;
+  }
+
+  .intro p {
+    margin: 0 var(--gutter) 1.15rem 0;
+    max-width: 42ch;
+  }
+  .intro .creed { margin-left: 2.6ch; }
+  .intro .sign { color: var(--soft); }
+
+  /* The rule runs the full width of the panel, from the screen edge to
+     the vertical rule, so it is not inset like the words are. */
+  .full-rule {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: clamp(20px, 3vh, 32px) 0 clamp(18px, 2.5vh, 26px)
+            calc(var(--gutter) * -1);
+    width: calc(100% + var(--gutter));
+  }
+
+  .legend h2 {
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin: 0 0 14px;
+  }
+  .legend dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px 14px;
+  }
+  .legend dt { display: flex; align-items: center; justify-content: flex-start; }
+  .legend dd { margin: 0; font-size: 0.82rem; color: var(--soft); }
+
+  /* Pinned to the bottom of the panel, below everything else. */
+  .colophon {
+    margin-top: auto;
+    padding-top: clamp(24px, 4vh, 48px);
+    font-size: 0.75rem;
+    color: var(--soft);
+  }
+  .colophon div + div { margin-top: 2px; }
+
+  /* ---- the postcards --------------------------------------------- */
+  .deck {
+    overflow-y: auto;
+    padding: clamp(28px, 5vh, 64px) var(--gutter) 40vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Each card settles centred when you stop scrolling, which is what
+       makes the next one peek in underneath. */
+    scroll-snap-type: y proximity;
+    gap: clamp(36px, 7vh, 88px);
+  }
+
   .card {
     border: 0; padding: 0; background: none; font: inherit; color: inherit;
-    display: block; width: 100%; cursor: pointer;
-    /* perspective is what makes the flip look like a real card turning
-       over rather than the picture simply squashing and stretching. */
-    perspective: 1800px;
+    display: block; cursor: pointer;
+    width: min(100%, 780px);
+    scroll-snap-align: center;
+    perspective: 2000px;
   }
-  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 8px; }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 10px; }
 
   .inner {
     position: relative;
     width: 100%;
-    aspect-ratio: 1350 / 1080;   /* the shape of the cards the script makes */
-    transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+    aspect-ratio: 1350 / 1080;
     transform-style: preserve-3d;
+    transition: transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
   }
-  .card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+  /* A slight tilt, alternating from card to card, so the deck looks laid
+     down by hand rather than printed on a grid. The tilt lives on .inner
+     alongside the flip, so the two do not fight over the transform. */
+  .card:nth-child(odd)  .inner { transform: rotate(-2deg); }
+  .card:nth-child(even) .inner { transform: rotate(2deg); }
+  .card:nth-child(odd)[aria-pressed="true"]  .inner { transform: rotate(-2deg) rotateY(180deg); }
+  .card:nth-child(even)[aria-pressed="true"] .inner { transform: rotate(2deg) rotateY(180deg); }
 
   .face {
     position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    /* Hides whichever side is pointing away from you. */
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.10), 0 18px 40px -22px rgba(0,0,0,0.45);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(40, 50, 40, 0.10),
+                0 18px 42px -24px rgba(40, 50, 40, 0.55);
   }
   .face img { width: 100%; height: 100%; display: block; object-fit: cover; }
   .back { transform: rotateY(180deg); }
 
-  .label {
-    display: flex; justify-content: space-between; align-items: baseline;
-    gap: 16px; margin-top: 14px;
-    font-size: 0.8rem; letter-spacing: 0.04em;
-  }
-  .label .turn { opacity: 0.5; }
-  .card:hover .label .turn { opacity: 1; color: var(--accent); }
+  .status { color: var(--soft); padding: 40px 0; }
 
-  .status { font-size: 0.85rem; opacity: 0.55; }
-
-  /* Some people find movement uncomfortable, so turn the card over
-     instantly for them instead. */
   @media (prefers-reduced-motion: reduce) {
     .inner { transition: none; }
+    .deck { scroll-snap-type: none; }
+  }
+
+  /* ---- on a phone ------------------------------------------------ */
+  /* The intro stops being a fixed column and simply sits on top. */
+  @media (max-width: 820px) {
+    html, body { height: auto; }
+    .spread { grid-template-columns: minmax(0, 1fr); height: auto; }
+    .intro {
+      border-right: 0;
+      border-bottom: 1px solid var(--rule);
+      overflow: visible;
+      padding-right: var(--gutter);
+    }
+    .colophon { margin-top: clamp(28px, 6vh, 56px); }
+    .deck { overflow: visible; padding-bottom: 12vh; scroll-snap-type: none; }
+    .card { width: 100%; }
   }
 </style>
 </head>
 <body>
-<header class="inset">
-  <h1>Walks</h1>
-  <p class="standfirst">A documentation of walks and the shapes created on
-     the way.</p>
-  <p class="hint">Click a card to turn it over.</p>
-</header>
-<hr class="divider">
 
-<div class="inset">
-  <div class="gallery" id="gallery">
-    <p class="status">Loading the cards…</p>
+<div class="spread">
+
+  <div class="intro">
+    <h1>Walks<br>from life</h1>
+
+    <p>Any distance is walkable if you put your mind to it.</p>
+
+    <p>Walks from life is an ongoing documentation project where I attempt
+       to capture the eccentricities of a walk through their shape.</p>
+
+    <p class="creed">The steps don't matter,<br>the characteristics do.</p>
+
+    <p class="sign">- Shivani,<br>serial walker</p>
+
+    <hr class="full-rule">
+
+    <div class="legend">
+      <h2>Legend</h2>
+      <dl id="legend"></dl>
+    </div>
+
+    <div class="colophon">
+      <div id="updated">Last updated: &mdash;</div>
+      <div>Source: My Strava, OSM</div>
+    </div>
   </div>
+
+  <div class="deck" id="deck">
+    <p class="status">Loading the cards&hellip;</p>
+  </div>
+
 </div>
 
 <!-- The list of walks, written by make_postcards.py. Loaded as a script
-     rather than fetched, so this page also works when you just
-     double-click it rather than putting it on a web server. -->
+     rather than fetched, so this page also works when you open it
+     straight from your computer instead of putting it on a server. -->
 <script src="cards/gallery.js"></script>
 
 <script>
-// Where the script leaves everything it makes.
 const CARDS = "cards/";
 
+// The legend describes marks the cards actually use. Pace is only listed
+// if some card is drawn with pace colouring, which none currently are.
+const LEGEND = [
+  { swatch: `<svg width="46" height="12" aria-hidden="true">
+               <line x1="1" y1="6" x2="45" y2="6"
+                     stroke="#e13a3d" stroke-width="5" stroke-linecap="round"/>
+             </svg>`,
+    label: "the walk" },
+
+  { swatch: `<svg width="46" height="14" aria-hidden="true">
+               <circle cx="10" cy="7" r="5.5" fill="none"
+                       stroke="#e13a3d" stroke-width="2.6"/>
+               <circle cx="34" cy="7" r="6" fill="#e13a3d"/>
+             </svg>`,
+    label: "start and end" },
+
+  { swatch: `<svg width="46" height="20" aria-hidden="true">
+               <circle cx="7"  cy="10" r="3.5" fill="#e13a3d" opacity="0.55"/>
+               <circle cx="20" cy="10" r="5.5" fill="#e13a3d" opacity="0.55"/>
+               <circle cx="36" cy="10" r="8"   fill="#e13a3d" opacity="0.55"/>
+             </svg>`,
+    label: "pauses, bigger means longer stood still" },
+];
+
+const PACE = {
+  swatch: `<svg width="46" height="12" aria-hidden="true">
+             <rect x="1"  y="2" width="11" height="8" fill="#f6c6b0"/>
+             <rect x="12" y="2" width="11" height="8" fill="#f09a86"/>
+             <rect x="23" y="2" width="11" height="8" fill="#e8695e"/>
+             <rect x="34" y="2" width="11" height="8" fill="#a81f2c"/>
+           </svg>`,
+  label: "Avg. pace, slower to faster" };
+
+function buildLegend(walks) {
+  const rows = LEGEND.slice();
+  if (walks.some(w => w.pace)) rows.push(PACE);
+  document.getElementById("legend").innerHTML = rows
+    .map(r => `<dt>${r.swatch}</dt><dd>${r.label}</dd>`).join("");
+}
+
 function build() {
-  const holder = document.getElementById("gallery");
+  const deck = document.getElementById("deck");
   const walks = window.WALKS;
 
+  document.getElementById("updated").textContent =
+    "Last updated: " + (window.UPDATED || "—");
+
   if (!walks || !walks.length) {
-    holder.innerHTML =
-      '<p class="status">No cards found yet. Run <code>run.bat</code> ' +
-      'to make them.</p>';
+    deck.innerHTML =
+      '<p class="status">No cards yet. Run <code>run.bat</code> to make them.</p>';
+    buildLegend([]);
     return;
   }
 
-  holder.innerHTML = "";
+  buildLegend(walks);
+  deck.innerHTML = "";
 
   for (const walk of walks) {
-    // A button, because it is something you click, and that gives us
-    // keyboard support and screen reader support for free.
+    // A button, because it is something you click. That gives keyboard
+    // and screen reader support without any extra work.
     const card = document.createElement("button");
     card.className = "card";
     card.type = "button";
     card.setAttribute("aria-pressed", "false");
     card.setAttribute("aria-label", "Turn over the card for " + walk.caption);
 
+    const where = walk.location ? ", " + walk.location : "";
     card.innerHTML = `
       <div class="inner">
         <div class="face front">
-          <img src="${CARDS + walk.front}" alt="The shape of ${walk.caption}, drawn in red on yellow">
+          <img src="${CARDS + walk.front}" loading="lazy"
+               alt="The shape of ${walk.caption}${where}, drawn in red on yellow">
         </div>
         <div class="face back">
-          <img src="${CARDS + walk.back}" alt="The back of the card for ${walk.caption}, listing distance, duration and pauses">
+          <img src="${CARDS + walk.back}" loading="lazy"
+               alt="The back of the card for ${walk.caption}, listing distance, duration and pauses">
         </div>
-      </div>
-      <div class="label">
-        <span>${walk.caption}</span>
-        <span class="turn">${walk.distance} · turn over</span>
       </div>`;
 
-    // Flip it. aria-pressed doubles as the record of which way up it is,
-    // so the CSS and assistive software agree with each other.
+    // aria-pressed doubles as the record of which way up the card is, so
+    // the styling and assistive software cannot disagree.
     card.addEventListener("click", () => {
       const flipped = card.getAttribute("aria-pressed") === "true";
       card.setAttribute("aria-pressed", flipped ? "false" : "true");
     });
 
-    holder.appendChild(card);
+    deck.appendChild(card);
   }
 }
 
