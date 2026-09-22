@@ -17,10 +17,14 @@
     --page:   #efefdf;   /* the pale sage the cards lie on */
     --ink:    #565658;
     --soft:   #8a8a83;   /* the same ink, stepped back for small print */
-    --rule:   #1b1b18;
+    /* Both rules in the left panel are the text colour at a fraction of
+       its strength, so they separate without becoming the darkest thing
+       on the page. */
+    --rule:   rgba(86, 86, 88, 0.14);
     --accent: #e13a3d;
     --left:   clamp(280px, 33vw, 460px);
     --gutter: clamp(24px, 4vw, 64px);
+    --pad:    clamp(28px, 3.8vw, 72px);   /* the left panel's own padding */
     color-scheme: light;
   }
   * { box-sizing: border-box; }
@@ -43,45 +47,44 @@
     height: 100%;
   }
 
-  /* Everything in here is sized against the height of the window as well
-     as its width, so the whole panel fits on one screen without a
-     scrollbar, and simply tightens up on a short one. */
+  /* The panel is two groups with the slack between them: the title and
+     the words sit at the top, the legend and the credits at the bottom.
+     On a screen too short to hold both, the bottom group simply follows
+     the top one rather than riding over it. */
   .intro {
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: clamp(20px, 3.4vh, 56px) 0 clamp(16px, 2.4vh, 32px) var(--gutter);
+    padding: var(--pad) 0 var(--pad) var(--pad);
     border-right: 1px solid var(--rule);
     overflow-y: auto;
   }
+  .intro .bottom { margin-top: auto; padding-top: 32px; }
 
   h1 {
     font-family: "Array", "JetBrains Mono", ui-monospace, monospace;
     font-weight: 400;
-    font-size: clamp(1.9rem, min(4.2vw, 4.8vh), 3.6rem);
-    line-height: 0.98;
-    letter-spacing: 0.01em;
-    margin: 0 var(--gutter) clamp(12px, 2.2vh, 30px) 0;
+    font-size: clamp(56px, 5vw, 104px);
+    line-height: 1;
+    letter-spacing: 0.005em;
+    margin: 0 0 clamp(20px, 2.6vh, 34px) 0;
   }
 
+  /* One reading width for every block of words in the panel, so they all
+     wrap to the same right edge instead of each finding its own. */
   .intro p {
-    margin: 0 var(--gutter) clamp(9px, 1.5vh, 18px) 0;
-    max-width: 42ch;
+    margin: 0 0 clamp(10px, 1.5vh, 18px) 0;
+    max-width: 40ch;
   }
-  /* The creed is meant to read as one line, so it is given the whole
-     column: no reading width, no indent, and no right hand gutter. On a
-     column too narrow to hold it, it still wraps rather than spilling. */
-  .intro .creed { max-width: none; margin-left: 0; margin-right: 0; }
   .intro .sign { color: var(--soft); }
 
-  /* The rule runs the full width of the panel, from the screen edge to
-     the vertical rule, so it is not inset like the words are. */
+  /* The divider runs the full width of the panel, from the screen edge to
+     the vertical rule, so it is not inset the way the words are. */
   .full-rule {
     border: 0;
     border-top: 1px solid var(--rule);
-    margin: clamp(12px, 2.2vh, 30px) 0 clamp(10px, 1.8vh, 24px)
-            calc(var(--gutter) * -1);
-    width: calc(100% + var(--gutter));
+    margin: 0 0 clamp(14px, 2vh, 24px) calc(var(--pad) * -1);
+    width: calc(100% + var(--pad));
   }
 
   .legend h2 {
@@ -107,10 +110,9 @@
     line-height: 1.35;
   }
 
-  /* Pinned to the bottom of the panel, below everything else. */
+  /* Sits under the legend, at the foot of the bottom group. */
   .colophon {
-    margin-top: auto;
-    padding-top: clamp(14px, 2.4vh, 40px);
+    padding-top: clamp(16px, 2.4vh, 30px);
     font-size: 0.75rem;
     color: var(--soft);
   }
@@ -181,9 +183,11 @@
       border-right: 0;
       border-bottom: 1px solid var(--rule);
       overflow: visible;
-      padding-right: var(--gutter);
+      padding-right: var(--pad);
     }
-    .colophon { margin-top: clamp(28px, 6vh, 56px); }
+    /* Stacked, so the bottom group simply follows rather than being
+       pushed to the foot of a column that no longer exists. */
+    .intro .bottom { margin-top: 0; padding-top: clamp(24px, 5vh, 48px); }
     .deck { overflow: visible; padding-bottom: 12vh; scroll-snap-type: none; }
     .card { width: 100%; }
   }
@@ -194,28 +198,36 @@
 <div class="spread">
 
   <div class="intro">
-    <h1>Walks<br>from life</h1>
 
-    <p>Any distance is walkable if you put your mind to it.</p>
+    <!-- The panel is two groups: this one sits at the top, the other is
+         pushed to the bottom, and the slack collects between them. -->
+    <div class="top">
+      <h1>Walks<br>from life</h1>
 
-    <p>Walks from life is an ongoing documentation project where I attempt
-       to capture the eccentricities of a walk through their shape.</p>
+      <p>Any distance is walkable if you put your mind to it.</p>
 
-    <p class="creed">The steps don't matter, the characteristics do.</p>
+      <p>Walks from life is an ongoing documentation project where I attempt
+         to capture the eccentricities of a walk through their shape.</p>
 
-    <p class="sign">- Shivani,<br>serial walker</p>
+      <p class="creed">The steps don't matter, the characteristics do.</p>
 
-    <hr class="full-rule">
-
-    <div class="legend">
-      <h2>Legend</h2>
-      <dl id="legend"></dl>
+      <p class="sign">- Shivani,<br>serial walker</p>
     </div>
 
-    <div class="colophon">
-      <div id="updated">Last updated: &mdash;</div>
-      <div>Source: My Strava, OSM</div>
+    <div class="bottom">
+      <hr class="full-rule">
+
+      <div class="legend">
+        <h2>Legend</h2>
+        <dl id="legend"></dl>
+      </div>
+
+      <div class="colophon">
+        <div id="updated">Last updated: &mdash;</div>
+        <div>Source: My Strava, OSM</div>
+      </div>
     </div>
+
   </div>
 
   <div class="deck" id="deck">
