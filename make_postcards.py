@@ -117,17 +117,38 @@ SUPERSAMPLE   = 3     # draw big then shrink, so the lines come out smooth
 # ---------------------------------------------------------------------------
 
 NS = {'g': 'http://www.topografix.com/GPX/1/1'}
-FONT_CANDIDATES = ["JetBrainsMono-Regular.ttf", "consola.ttf", "Consolas.ttf",
-                   "DejaVuSansMono.ttf", "Menlo.ttc", "cour.ttf"]
+
+# JetBrains Mono lives in the fonts folder beside this script, rather than
+# relying on it being installed. Anyone who clones this repository gets
+# the same cards, and there is no silent fall back to whatever monospace
+# the machine happens to have, which is what used to happen.
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+FONT_FILES = {
+    "medium":  "JetBrainsMono-Medium.ttf",
+    "regular": "JetBrainsMono-Regular.ttf",
+}
+# Only used if the bundled fonts have been deleted.
+FALLBACKS = ["consola.ttf", "DejaVuSansMono.ttf", "Menlo.ttc", "cour.ttf"]
+
+_warned = set()
 
 
-def load_font(size):
-    for f in FONT_CANDIDATES:
-        try:
-            return ImageFont.truetype(f, size)
-        except OSError:
-            continue
-    return ImageFont.load_default()
+def load_font(size, weight="medium"):
+    """JetBrains Mono at the weight asked for, from the fonts folder."""
+    try:
+        return ImageFont.truetype(
+            os.path.join(FONT_DIR, FONT_FILES[weight]), size)
+    except OSError:
+        if weight not in _warned:
+            _warned.add(weight)
+            print(f"  ! {FONT_FILES[weight]} is missing from {FONT_DIR}, so "
+                  f"the cards will not be set in JetBrains Mono")
+        for f in FALLBACKS:
+            try:
+                return ImageFont.truetype(f, size)
+            except OSError:
+                continue
+        return ImageFont.load_default()
 
 
 def shared_size(items, start, floor=MIN_FONT):
@@ -850,9 +871,11 @@ def draw_back(caption, location, stats, paper, head_size):
     rx0 = mid + INSET
     rx1 = CARD_W - BORDER - INSET
 
-    label_font = load_font(int(19 * S))
+    # Captions and figures in medium, the quieter labels in regular, so
+    # the two read as different kinds of thing.
+    label_font = load_font(int(19 * S), "regular")
     value_font = load_font(int(32 * S))
-    place_font = load_font(int(max(MIN_FONT, 22) * S))
+    place_font = load_font(int(max(MIN_FONT, 22) * S), "regular")
     spacing = 3.2 * S
 
     # The caption heads the card, running onto a second or third line if

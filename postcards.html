@@ -43,11 +43,14 @@
     height: 100%;
   }
 
+  /* Everything in here is sized against the height of the window as well
+     as its width, so the whole panel fits on one screen without a
+     scrollbar, and simply tightens up on a short one. */
   .intro {
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: clamp(32px, 5vh, 64px) 0 clamp(24px, 4vh, 40px) var(--gutter);
+    padding: clamp(20px, 3.4vh, 56px) 0 clamp(16px, 2.4vh, 32px) var(--gutter);
     border-right: 1px solid var(--rule);
     overflow-y: auto;
   }
@@ -55,17 +58,20 @@
   h1 {
     font-family: "Array", "JetBrains Mono", ui-monospace, monospace;
     font-weight: 400;
-    font-size: clamp(2.6rem, 4.4vw, 4rem);
+    font-size: clamp(1.9rem, min(4.2vw, 4.8vh), 3.6rem);
     line-height: 0.98;
     letter-spacing: 0.01em;
-    margin: 0 var(--gutter) clamp(24px, 3vh, 36px) 0;
+    margin: 0 var(--gutter) clamp(12px, 2.2vh, 30px) 0;
   }
 
   .intro p {
-    margin: 0 var(--gutter) 1.15rem 0;
+    margin: 0 var(--gutter) clamp(9px, 1.5vh, 18px) 0;
     max-width: 42ch;
   }
-  .intro .creed { margin-left: 2.6ch; }
+  /* The creed is meant to read as one line, so it is given the whole
+     column: no reading width, no indent, and no right hand gutter. On a
+     column too narrow to hold it, it still wraps rather than spilling. */
+  .intro .creed { max-width: none; margin-left: 0; margin-right: 0; }
   .intro .sign { color: var(--soft); }
 
   /* The rule runs the full width of the panel, from the screen edge to
@@ -73,7 +79,7 @@
   .full-rule {
     border: 0;
     border-top: 1px solid var(--rule);
-    margin: clamp(20px, 3vh, 32px) 0 clamp(18px, 2.5vh, 26px)
+    margin: clamp(12px, 2.2vh, 30px) 0 clamp(10px, 1.8vh, 24px)
             calc(var(--gutter) * -1);
     width: calc(100% + var(--gutter));
   }
@@ -84,22 +90,27 @@
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--soft);
-    margin: 0 0 14px;
+    margin: 0 0 clamp(7px, 1.2vh, 14px);
   }
   .legend dl {
     margin: 0;
     display: grid;
-    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-columns: 52px minmax(0, 1fr);
     align-items: center;
-    gap: 12px 14px;
+    gap: clamp(6px, 1.1vh, 12px) 12px;
   }
   .legend dt { display: flex; align-items: center; justify-content: flex-start; }
-  .legend dd { margin: 0; font-size: 0.82rem; color: var(--soft); }
+  .legend dd {
+    margin: 0;
+    font-size: clamp(0.72rem, 1.5vh, 0.82rem);
+    color: var(--soft);
+    line-height: 1.35;
+  }
 
   /* Pinned to the bottom of the panel, below everything else. */
   .colophon {
     margin-top: auto;
-    padding-top: clamp(24px, 4vh, 48px);
+    padding-top: clamp(14px, 2.4vh, 40px);
     font-size: 0.75rem;
     color: var(--soft);
   }
@@ -190,7 +201,7 @@
     <p>Walks from life is an ongoing documentation project where I attempt
        to capture the eccentricities of a walk through their shape.</p>
 
-    <p class="creed">The steps don't matter,<br>the characteristics do.</p>
+    <p class="creed">The steps don't matter, the characteristics do.</p>
 
     <p class="sign">- Shivani,<br>serial walker</p>
 
@@ -243,6 +254,13 @@ const LEGEND = [
                <circle cx="36" cy="10" r="8"   fill="#e13a3d" opacity="0.55"/>
              </svg>`,
     label: "pauses, bigger means longer stood still" },
+
+  { swatch: `<svg width="46" height="12" aria-hidden="true">
+               <line x1="1" y1="6" x2="45" y2="6" stroke="#e13a3d"
+                     stroke-width="3.4" stroke-linecap="butt"
+                     stroke-dasharray="8 5"/>
+             </svg>`,
+    label: "stopped recording to save battery" },
 ];
 
 const PACE = {

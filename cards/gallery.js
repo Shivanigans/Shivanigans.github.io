@@ -45,7 +45,7 @@ window.WALKS = [
   },
   {
     "name": "Walk in da park",
-    "caption": "Walk in da park",
+    "caption": "Trying open gym equipement in C9",
     "location": "Delhi, India",
     "front": "Walk_in_da_park-front.png",
     "back": "Walk_in_da_park-back.png",
@@ -111,7 +111,7 @@ window.WALKS = [
   },
   {
     "name": "Kempagowda Security check-in and sprinting to see monisha",
-    "caption": "Kempagowda Security check-in and sprinting to see monisha",
+    "caption": "Pulling a rom-com sprint",
     "location": "Bengaluru, India",
     "front": "Kempagowda_Security_check-in_and_sprinting_to_see_monisha-front.png",
     "back": "Kempagowda_Security_check-in_and_sprinting_to_see_monisha-back.png",
