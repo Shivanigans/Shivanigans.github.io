@@ -136,6 +136,7 @@
     /* Each card settles centred when you stop scrolling, which is what
        makes the next one peek in underneath. */
     scroll-snap-type: y proximity;
+    scroll-behavior: smooth;
     gap: clamp(36px, 7vh, 88px);
   }
 
@@ -179,7 +180,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .inner { transition: none; }
-    .deck { scroll-snap-type: none; }
+    .deck { scroll-snap-type: none; scroll-behavior: auto; }
   }
 
   /* ---- on a phone ------------------------------------------------ */
@@ -332,11 +333,11 @@ function build() {
     card.innerHTML = `
       <div class="inner">
         <div class="face front">
-          <img src="${CARDS + walk.front}" loading="lazy"
+          <img src="${CARDS + walk.front}" loading="lazy" decoding="async"
                alt="The shape of ${walk.caption}${where}, drawn in red on yellow">
         </div>
         <div class="face back">
-          <img src="${CARDS + walk.back}" loading="lazy"
+          <img src="${CARDS + walk.back}" loading="lazy" decoding="async"
                alt="The back of the card for ${walk.caption}, listing distance, duration and pauses">
         </div>
       </div>`;

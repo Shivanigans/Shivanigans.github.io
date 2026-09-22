@@ -8,9 +8,10 @@ How to run it, from the folder this file sits in:
 
 For each walk it writes three things into the cards folder:
 
-    <walk>-front.png    the yellow card with the walk drawn on it
+    <walk>-front.png    the yellow card, full size, to keep and print
+    <walk>-front.webp   the same card, lighter, for the web page
     <walk>-back.png     the info side, with the left half left clear
-    gallery.json        a list of what was made, which postcards.html reads
+    gallery.js          a list of what was made, which postcards.html reads
 
 It needs two extra libraries, installed once with:
 
@@ -110,6 +111,13 @@ STRIP_FONT = 38       # caption and location on the front
 HEAD_FONT  = 46       # the caption again, heading the back
 HEAD_LINES = 3        # how many lines that heading may run to
 MIN_FONT   = 12       # the floor, for every piece of fitted text
+
+# The cards are written twice: a PNG to keep, print and share, and a
+# lighter copy for the web page. The paper texture is fine noise, which is
+# close to the worst case for PNG, so a full size card runs to about 2.6 MB
+# and a page of them to over 50 MB, which scrolls badly. WebP carries the
+# same grain at roughly a seventh of that.
+WEB_QUALITY = 85
 
 CAPTIONS_FILE = "captions.json"   # your own captions and locations
 OUT_DIR       = "cards"
@@ -930,6 +938,14 @@ def draw_back(caption, location, stats, paper, head_size):
 
 # ---------------------------------------------------------------------------
 
+def save_card(image, stem):
+    """Write one side of a card: the PNG to keep, and the web copy."""
+    png, web = f"{stem}.png", f"{stem}.webp"
+    image.save(os.path.join(OUT_DIR, png))
+    image.save(os.path.join(OUT_DIR, web), quality=WEB_QUALITY, method=5)
+    return png, web
+
+
 def load_captions():
     """Your own list of captions and locations, keyed by Strava name.
 
@@ -1043,8 +1059,6 @@ def main():
             missing_places.append(walk['name'])
 
         stem = safe_name(walk['name'])
-        front_file = f"{stem}-front.png"
-        back_file = f"{stem}-back.png"
 
         # Buildings and roads, where this walk has a map file of its own.
         geography = None
@@ -1080,10 +1094,12 @@ def main():
         elif SHOW_MAP:
             missing_maps.append(walk)
 
-        draw_front(walk, mpp, caption, location, stats, paper, geography,
-                   strip_size).save(os.path.join(OUT_DIR, front_file))
-        draw_back(caption, location, stats, paper, head_size).save(
-            os.path.join(OUT_DIR, back_file))
+        front_png, front_web = save_card(
+            draw_front(walk, mpp, caption, location, stats, paper,
+                       geography, strip_size), f"{stem}-front")
+        back_png, back_web = save_card(
+            draw_back(caption, location, stats, paper, head_size),
+            f"{stem}-back")
 
         print(f"{walk['name']}")
         print(f"  {say_distance(stats['metres'])} in "
@@ -1105,14 +1121,16 @@ def main():
                   f"else, nothing reached this walk")
         elif SHOW_MAP:
             print(f"  map: none yet, so the ground is left plain")
-        print(f"  {OUT_DIR}/{front_file} and {OUT_DIR}/{back_file}\n")
+        print(f"  {OUT_DIR}/{front_png} and {OUT_DIR}/{back_png}, plus .webp\n")
 
         gallery.append({
             "name": walk['name'],
             "caption": caption,
             "location": location,
-            "front": front_file,
-            "back": back_file,
+            "front": front_web,
+            "back": back_web,
+            "frontPrint": front_png,
+            "backPrint": back_png,
             "date": stats['started'].strftime('%d%m%Y'),
             "distance": say_distance(stats['metres']),
             "duration": say_duration(stats['seconds']),
