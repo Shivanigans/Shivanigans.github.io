@@ -1,8 +1,9 @@
 # Walk plates — decisions and measurements
 
 A gallery of under 10 Strava walks, each drawn as one designed plate with a
-hand-written caption. Plates are finished in Figma; the script produces
-layered SVG.
+hand-written caption. The script produces layered SVG and that is the
+plate, live on the web with no separate finishing pass - `walks.html` is
+what a visitor sees.
 
 ## Design reference
 
@@ -80,8 +81,10 @@ walking, and slow walking across a long gap looks like a cab. `VEHICLE_GAPS`
 in the script overrides it by walk name and gap number, which the script
 prints on every run.
 
-**Typeface** — JetBrains Mono, with a monospace fallback. It must be
-installed locally for Figma to render it.
+**Typeface** — JetBrains Mono, with a monospace fallback. `walks.html` loads
+it from Google Fonts, so every caption in the gallery renders in it. A plate
+opened on its own, outside that page, has no font of its own to load and
+falls back to whatever monospace the viewer's system has.
 
 **Pause scale** — shared across every plate, set by the longest pause
 anywhere, so circles are comparable between plates. Radius grows with the
@@ -89,6 +92,26 @@ square root of duration, so area tracks time. No legend: the reading it
 offered felt more precise than the underlying pause detection warrants.
 
 **Captions** — written by hand, never generated.
+
+**Paper grain** — a faint multiply-blend texture over the finished plate:
+fine speckle, underneath it a softer blurred field for uneven tone, and
+streaky fibre running through both. All three are built from SVG
+`<feTurbulence>`. Grain and blotch are centred on 1.0 via
+`feComponentTransfer`, so they darken and lighten evenly rather than only
+shading one way; fibre is centred on 1.0 at its lightest instead, so it
+only ever darkens, the way an actual paper fibre reads as a streak rather
+than a highlight. This is the vector equivalent of the multiply-blended
+noise array `walk_card.py`, an earlier raster take on these plates, applied
+per pixel - grain and blotch matching that script's `tex = 1.0 + noise *
+strength`, fibre matching its `tex -= fibres * strength`. Fibre is not a
+literal port, though: `walk_card.py` draws hundreds of short individually
+curved strokes, which is a shape count these filter-only plates are
+deliberately avoiding, so `type="turbulence"` stretched on one axis stands
+in for that streaked look rather than reproducing it stroke for stroke.
+Seeded from the walk's name, so a given walk always pulls the same grain
+rather than reshuffling on every run, matching how the blocks and conifers
+are seeded. Toggled with `PAPER`; strength set by `GRAIN`, `BLOTCH` and
+`FIBRE`.
 
 ## Measured walks
 

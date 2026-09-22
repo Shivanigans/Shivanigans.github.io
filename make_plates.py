@@ -10,8 +10,9 @@ Passing them together matters. The plates share one scale for distance and
 one scale for pause size, and the script can only work those out if it can
 see every walk.
 
-Output is one .svg per walk in plates/, with named layers you can switch on
-and off in Figma, plus gallery.json for the web gallery.
+Output is one .svg per walk in plates/, with named layers the gallery uses
+to fade the ground during replay and draw the path in, plus gallery.json
+for the web gallery.
 """
 
 import xml.etree.ElementTree as ET
@@ -34,6 +35,18 @@ CAPTION = "#686136"   # olive, for the caption inside the card
 RULE    = "#655920"   # the thin line above the caption
 
 FONT = "JetBrains Mono, ui-monospace, monospace"
+
+# Paper grain: a faint multiply-blend noise standing in for the pale card
+# stock the plates are meant to look printed on. Grain and blotch are
+# centred on 1.0, so they darken and lighten the plate evenly rather than
+# only shading one way; fibres only darken, the same one-directional streaks
+# a real paper fibre reads as. Built from SVG filter primitives rather than
+# scattered shapes, so it stays cheap regardless of how much a plate already
+# draws, and renders live in any browser - the gallery included.
+PAPER   = True
+GRAIN   = 0.07    # fine speckle, 0 = none
+BLOTCH  = 0.045   # soft uneven tone, 0 = none
+FIBRE   = 0.05    # faint directional streaks, 0 = none
 
 # The longest walk's longest side becomes this many pixels. Every other
 # walk is drawn at that same scale, so plate size means distance.
@@ -656,6 +669,61 @@ def conifer(x, y, size, colour, fade):
             f'stroke-linecap="round" opacity="{fade:.2f}"/>')
 
 
+def paper_filter(grain_seed, blotch_seed, fibre_seed):
+    """An SVG filter that multiplies the finished plate by three noise
+    fields: fine speckle, blurred soft uneven tone underneath it, and
+    streaky fibre running through both.
+
+    feTurbulence's output sits in 0..1. Grain and blotch are re-centred on
+    1.0 by feComponentTransfer's linear function, so they darken and
+    lighten in equal measure - the vector equivalent of walk_card.py's
+    per-pixel `tex = 1.0 + noise * strength`. Fibre is re-centred on 1.0 at
+    its lightest instead, so it only ever darkens, matching that script's
+    `tex -= fibres * strength`; its turbulence is `type="turbulence"`, more
+    veined than the smoother `fractalNoise` used for grain and blotch, and
+    stretched on one axis so it reads as streaks rather than speckle.
+    """
+    def two_way(strength):
+        return f'slope="{2*strength:.3f}" intercept="{1-strength:.3f}"'
+
+    def darken_only(strength):
+        return f'slope="{strength:.3f}" intercept="{1-strength:.3f}"'
+
+    grain_curve = two_way(GRAIN)
+    blotch_curve = two_way(BLOTCH)
+    fibre_curve = darken_only(FIBRE)
+    return (
+        '    <filter id="paper" x="-4%" y="-4%" width="108%" height="108%" '
+        'color-interpolation-filters="sRGB">\n'
+        f'      <feTurbulence type="fractalNoise" baseFrequency="0.85" '
+        f'numOctaves="2" seed="{grain_seed}" result="grain"/>\n'
+        '      <feComponentTransfer in="grain" result="grainTone">\n'
+        f'        <feFuncR type="linear" {grain_curve}/>\n'
+        f'        <feFuncG type="linear" {grain_curve}/>\n'
+        f'        <feFuncB type="linear" {grain_curve}/>\n'
+        '      </feComponentTransfer>\n'
+        f'      <feTurbulence type="fractalNoise" baseFrequency="0.015" '
+        f'numOctaves="2" seed="{blotch_seed}" result="blotchRaw"/>\n'
+        '      <feGaussianBlur in="blotchRaw" stdDeviation="9" result="blotchSoft"/>\n'
+        '      <feComponentTransfer in="blotchSoft" result="blotchTone">\n'
+        f'        <feFuncR type="linear" {blotch_curve}/>\n'
+        f'        <feFuncG type="linear" {blotch_curve}/>\n'
+        f'        <feFuncB type="linear" {blotch_curve}/>\n'
+        '      </feComponentTransfer>\n'
+        f'      <feTurbulence type="turbulence" baseFrequency="0.35 0.025" '
+        f'numOctaves="3" seed="{fibre_seed}" result="fibreRaw"/>\n'
+        '      <feComponentTransfer in="fibreRaw" result="fibreTone">\n'
+        f'        <feFuncR type="linear" {fibre_curve}/>\n'
+        f'        <feFuncG type="linear" {fibre_curve}/>\n'
+        f'        <feFuncB type="linear" {fibre_curve}/>\n'
+        '      </feComponentTransfer>\n'
+        '      <feBlend in="grainTone" in2="blotchTone" mode="multiply" result="tone"/>\n'
+        '      <feBlend in="tone" in2="fibreTone" mode="multiply" result="texture"/>\n'
+        '      <feBlend in="SourceGraphic" in2="texture" mode="multiply"/>\n'
+        '    </filter>'
+    )
+
+
 def escape(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
@@ -736,6 +804,10 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
     add('  <defs>')
     add(f'    <clipPath id="frame"><rect x="0" y="0" width="{plate_w:.2f}" '
         f'height="{art_h + margin * 2:.2f}"/></clipPath>')
+    if PAPER:
+        dice = random.Random(str(name) + "paper")
+        add(paper_filter(dice.randrange(1000), dice.randrange(1000),
+                          dice.randrange(1000)))
     add('  </defs>')
     add(f'  <!-- {name}: '
         + (f'turned {spin:.0f} degrees, ' if spin else '')
@@ -743,6 +815,11 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         f'{len(pauses)} pauses, {len(reversals)} reversals, '
         f'{len(gaps)} recording gaps, {dropped} GPS spikes dropped, '
         f'{metres_per_pixel:.3f} m per pixel -->')
+
+    # Everything below is drawn inside one group so the paper filter, when
+    # on, multiplies the finished plate rather than any one layer.
+    if PAPER:
+        add('  <g filter="url(#paper)">')
 
     add('  <g id="background">')
     add(f'    <rect x="0" y="0" width="{plate_w:.2f}" height="{plate_h:.2f}" fill="{GROUND}"/>')
@@ -790,7 +867,8 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
                 f'transform="rotate({block["angle"]:.1f} {bx:.2f} {by:.2f})"/>')
     add('  </g>')
 
-    # Roads as their own layer, faint, so you can switch them off in Figma.
+    # Roads as their own layer, faint, so the gallery can fade them out
+    # during replay along with the rest of the ground.
     add('  <g id="roads" clip-path="url(#frame)">')
     for shape in roads:
         points = " ".join(f"{x:.2f},{y:.2f}"
@@ -885,6 +963,9 @@ def build_plate(name, gpx_path, metres_per_pixel, longest_pause, caption):
         f'font-family="{FONT}" font-size="{small:.1f}" fill="{CAPTION}" '
         f'text-anchor="middle" opacity="0.75">{say_distance(distance)} walked</text>')
     add('  </g>')
+
+    if PAPER:
+        add('  </g>')
 
     add('</svg>')
 
