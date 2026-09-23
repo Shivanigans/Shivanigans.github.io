@@ -1,8 +1,9 @@
 @echo off
 setlocal
 
-REM Copies the finished site into the folder Vercel serves, so the two
-REM places do not drift apart. Run this straight after run.bat.
+REM Copies the finished site into the folder Vercel serves. This is how
+REM a change reaches the web: run.bat draws the cards, this carries them
+REM across, then you push. Run it straight after run.bat.
 REM
 REM If you ever move that folder, change the DEST line below.
 
