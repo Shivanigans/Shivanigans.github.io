@@ -22,9 +22,9 @@
        on the page. */
     --rule:   rgba(86, 86, 88, 0.14);
     --accent: #e13a3d;
-    --left:   clamp(280px, 33vw, 460px);
+    --left:   clamp(300px, 36.5vw, 700px);
     --gutter: clamp(24px, 4vw, 64px);
-    --pad:    clamp(28px, 3.8vw, 72px);   /* the left panel's own padding */
+    --pad:    clamp(28px, 4.6vw, 88px);   /* the left panel's own padding */
     /* The three gaps at the foot of the panel, measured off the reference
        layout on a 1080px tall screen: 50px from the signature down to the
        rule, 20px from the rule to the legend, and the rest of the height
@@ -62,9 +62,10 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    /* 60px at the top, 72px on the left, and 42px at the foot, which is
-       what sits under the credits in the reference layout. */
-    padding: clamp(24px, 3.2vw, 60px) 0 clamp(16px, 3.9vh, 44px) var(--pad);
+    /* 60px at the top, 42px at the foot, and the same --pad down each
+       side, so the words sit centred in the panel rather than pressed
+       against the rule. */
+    padding: clamp(24px, 3.2vw, 60px) var(--pad) clamp(16px, 3.9vh, 44px);
     border-right: 1px solid var(--rule);
     overflow-y: auto;
   }
@@ -96,21 +97,23 @@
     margin: 0 0 clamp(20px, 2.6vh, 34px) 0;
   }
 
-  /* One reading width for every block of words in the panel, so they all
-     wrap to the same right edge instead of each finding its own. */
+  /* The words wrap at the padding, so the gap on the right matches the
+     gap on the left. The panel's own width is what keeps the line from
+     growing too long to read: at its widest this measures about 62
+     characters. */
   .intro p {
     margin: 0 0 clamp(10px, 1.5vh, 18px) 0;
-    max-width: 40ch;
   }
   .intro .sign { color: var(--soft); }
 
   /* The divider runs the full width of the panel, from the screen edge to
-     the vertical rule, so it is not inset the way the words are. */
+     the vertical rule, so it is not inset the way the words are. It pulls
+     back out through the padding on both sides to get there. */
   .full-rule {
     border: 0;
     border-top: 1px solid var(--rule);
-    margin: 0 0 var(--gap-rule-legend) calc(var(--pad) * -1);
-    width: calc(100% + var(--pad));
+    margin: 0 calc(var(--pad) * -1) var(--gap-rule-legend);
+    width: auto;
   }
 
   .legend h2 {
@@ -171,11 +174,6 @@
      they will sit from the legend, for a screen with no slack to give. */
   .colophon {
     margin-top: auto;
-    /* The panel has no padding on its right, so that the rule above the
-       legend can run the full width. Everything else in here is held off
-       the edge by its own measure; the credits need saying explicitly, or
-       the attribution runs into the vertical rule. */
-    padding-right: var(--pad);
     padding-top: var(--gap-legend-foot);
     font-size: 0.75rem;
     color: var(--soft);
@@ -239,6 +237,34 @@
     .deck { scroll-snap-type: none; scroll-behavior: auto; }
   }
 
+  /* ---- on a short screen ----------------------------------------- */
+  /* The panel has a fixed amount to say and a screen shorter than about
+     840px cannot hold it, so it scrolls. Rather than leave that, the panel
+     gives height back where it costs least: the title first, which carries
+     more height than any other line for the least said, then the padding
+     above it, then the gaps around the legend.
+
+     None of this reaches the 1080px tall screen the panel is spaced to
+     match, because the query cannot apply there. At 900px, where it starts,
+     the values are close to what they were, so nothing jumps as a window
+     is dragged shorter. */
+  @media (max-height: 900px) {
+    :root {
+      --gap-sign-rule:   clamp(16px, 3.2vh, 50px);
+      --gap-legend-foot: clamp(12px, 2vh, 30px);
+    }
+    h1 {
+      font-size: clamp(40px, min(5vw, 8vh), 104px);
+      margin-bottom: clamp(14px, 2vh, 34px);
+    }
+    .intro {
+      padding-top: clamp(20px, min(3.2vw, 4.4vh), 60px);
+      padding-bottom: clamp(14px, 3vh, 44px);
+    }
+    .intro p { margin-bottom: clamp(8px, 1.2vh, 18px); }
+    .legend dl { gap: clamp(5px, 0.9vh, 12px) 12px; }
+  }
+
   /* ---- on a phone ------------------------------------------------ */
   /* The intro stops being a fixed column and simply sits on top. */
   @media (max-width: 820px) {
@@ -248,7 +274,6 @@
       border-right: 0;
       border-bottom: 1px solid var(--rule);
       overflow: visible;
-      padding-right: var(--pad);
     }
     /* Stacked, so there is no spare height for the credits to be pushed
        into. They fall in below the legend at --gap-legend-foot, which is
