@@ -14,9 +14,9 @@
 # Lines starting with # are notes and are ignored. Blank lines are fine.
 # Commas are fine too - only the | bar separates the three parts.
 
-Walk_to_mcleodganj                                        | Walk to mcleodganj                            | Dharamsala, India
+Walk_to_mcleodganj                                        | inevitable quiet walk post an argument        | Dharamsala, India
 Walk_to_naddi                                             | Offgrid in naddi                              | Dharamsala, India
-Walk_to_st_johns                                          | Walk to st johns                              | Dharamsala, India
+Walk_to_st_johns                                          | underwhelming visit to st. johns              | Dharamsala, India
 Walk_to_Monday_market                                     | Walk to Monday market                         | Delhi, India
 Walk_in_da_park                                           | Trying open gym equipement in C9              | Delhi, India
 Beautiful_walk_to_work_because_it_was_raining             | Beautiful walk to work because it was raining | Delhi, India
@@ -24,5 +24,5 @@ Birdwatching_and_biodiversity_parking                     | Birdwatching and bio
 Walking_with_a_dog                                        | Walking with a dog                            | Greatest Noida, India
 Dog_walked_me                                             | Dog walked me                                 | Greatest Noida, India
 Dosa_run                                                  | Dosa run                                      | Bengaluru, India
-Kempagowda_Security_check-in_and_sprinting_to_see_monisha | Pulling a rom-com sprint                      | Bengaluru, India
+Kempagowda_Security_check-in_and_sprinting_to_see_monisha | Pulling a rom-com sprint at the airport       | Bengaluru, India
 Van_vihar_bicycling_and_steling                           | Vän vihar bicycling änd steling               | Bhopal, India

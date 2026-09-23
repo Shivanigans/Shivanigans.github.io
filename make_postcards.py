@@ -209,7 +209,8 @@ def wrap_text(ruler, text, font, room):
     return lines or [""]
 
 
-def shared_wrapped_size(texts, room, start, max_lines, floor=MIN_FONT):
+def shared_wrapped_size(texts, room, start, max_lines, floor=MIN_FONT,
+                        weight="medium"):
     """One size for a caption that is allowed to run onto several lines.
 
     Squeezing a long caption onto a single line makes it smaller than the

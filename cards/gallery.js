@@ -2,7 +2,7 @@ window.WALKS = [
   {
     "name": "Walk to mcleodganj",
     "file": "Walk_to_mcleodganj",
-    "caption": "Walk to mcleodganj",
+    "caption": "inevitable quiet walk post an argument",
     "location": "Dharamsala, India",
     "front": "Walk_to_mcleodganj-front.webp",
     "back": "Walk_to_mcleodganj-back.webp",
@@ -30,7 +30,7 @@ window.WALKS = [
   {
     "name": "Walk to st johns",
     "file": "Walk_to_st_johns",
-    "caption": "Walk to st johns",
+    "caption": "underwhelming visit to st. johns",
     "location": "Dharamsala, India",
     "front": "Walk_to_st_johns-front.webp",
     "back": "Walk_to_st_johns-back.webp",
@@ -142,7 +142,7 @@ window.WALKS = [
   {
     "name": "Kempagowda Security check-in and sprinting to see monisha",
     "file": "Kempagowda_Security_check-in_and_sprinting_to_see_monisha",
-    "caption": "Pulling a rom-com sprint",
+    "caption": "Pulling a rom-com sprint at the airport",
     "location": "Bengaluru, India",
     "front": "Kempagowda_Security_check-in_and_sprinting_to_see_monisha-front.webp",
     "back": "Kempagowda_Security_check-in_and_sprinting_to_see_monisha-back.webp",
