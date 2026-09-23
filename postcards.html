@@ -171,6 +171,11 @@
      they will sit from the legend, for a screen with no slack to give. */
   .colophon {
     margin-top: auto;
+    /* The panel has no padding on its right, so that the rule above the
+       legend can run the full width. Everything else in here is held off
+       the edge by its own measure; the credits need saying explicitly, or
+       the attribution runs into the vertical rule. */
+    padding-right: var(--pad);
     padding-top: var(--gap-legend-foot);
     font-size: 0.75rem;
     color: var(--soft);
@@ -285,7 +290,7 @@
 
       <div class="colophon">
         <div id="updated">Last updated: &mdash;</div>
-        <div>Source: Strava, OSM</div>
+        <div>Source: Strava, Map data &copy; OpenStreetMap contributors</div>
       </div>
     </div>
 
@@ -383,7 +388,7 @@ function buildPauseScale() {
   }).join("");
 
   document.getElementById("pauseScale").innerHTML =
-    `<h3>Pauses, by how long you stood still</h3>
+    `<h3>Pauses</h3>
      <div class="marks">${marks}</div>`;
 }
 
