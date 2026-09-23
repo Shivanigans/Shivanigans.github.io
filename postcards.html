@@ -22,6 +22,12 @@
        on the page. */
     --rule:   rgba(86, 86, 88, 0.14);
     --accent: #e13a3d;
+    /* A pause is drawn on the card as the walk's red at 140/255 over the
+       yellow ground, which comes out this colour. The legend paints it
+       solid rather than repeating the red at low opacity, because the
+       panel is white: the same recipe over white gives a pink that looks
+       nothing like the circles on the cards. */
+    --pause:  #ec8658;
     --left:   clamp(300px, 36.5vw, 700px);
     --gutter: clamp(24px, 4vw, 64px);
     --pad:    clamp(28px, 4.6vw, 88px);   /* the left panel's own padding */
@@ -132,10 +138,14 @@
     gap: clamp(6px, 1.1vh, 12px) 12px;
   }
   .legend dt { display: flex; align-items: center; justify-content: flex-start; }
+  /* The legend names the marks on the cards, so it is the panel's own
+     content and carries the full text colour. The credits underneath stay
+     in the stepped back grey, which is what separates the two now that
+     they sit the same distance apart as everything else. */
   .legend dd {
     margin: 0;
     font-size: clamp(0.72rem, 1.5vh, 0.82rem);
-    color: var(--soft);
+    color: var(--ink);
     line-height: 1.35;
   }
 
@@ -150,7 +160,7 @@
     font-size: clamp(0.72rem, 1.5vh, 0.82rem);
     font-weight: 400;
     line-height: 1.35;
-    color: var(--soft);
+    color: var(--ink);
   }
   .pause-scale .marks {
     display: flex;
@@ -163,9 +173,12 @@
     align-items: center;
     gap: 6px;
   }
+  /* Set here rather than on the circle itself: var() is not dependable
+     inside an SVG presentation attribute. */
+  .pause-mark circle { fill: var(--pause); }
   .pause-mark span {
     font-size: clamp(0.64rem, 1.3vh, 0.72rem);
-    color: var(--soft);
+    color: var(--ink);
     white-space: nowrap;
   }
 
@@ -405,8 +418,7 @@ function buildPauseScale() {
     const box = Math.ceil(r * 2);
     return `<div class="pause-mark">
               <svg width="${box}" height="${box}" aria-hidden="true">
-                <circle cx="${box / 2}" cy="${box / 2}" r="${r.toFixed(2)}"
-                        fill="#e13a3d" opacity="0.55"/>
+                <circle cx="${box / 2}" cy="${box / 2}" r="${r.toFixed(2)}"/>
               </svg>
               <span>${sayPause(secs)}</span>
             </div>`;
