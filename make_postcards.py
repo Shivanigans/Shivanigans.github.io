@@ -141,7 +141,7 @@ FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 FONT_FILES = {
     "medium":  "JetBrainsMono-Medium.ttf",
     "regular": "JetBrainsMono-Regular.ttf",
-    "hand":    "Caveat-Regular.ttf",
+    "hand":    "NothingYouCouldDo.ttf",
 }
 # Only used if the bundled fonts have been deleted.
 FALLBACKS = ["consola.ttf", "DejaVuSansMono.ttf", "Menlo.ttc", "cour.ttf"]
@@ -150,7 +150,11 @@ _warned = set()
 
 
 def load_font(size, weight="medium"):
-    """A font from the fonts folder: JetBrains Mono, or Caveat for "hand"."""
+    """A font from the fonts folder.
+
+    JetBrains Mono for everything the card says, and Nothing You Could
+    Do, a handwriting face, for the "hand" weight.
+    """
     try:
         return ImageFont.truetype(
             os.path.join(FONT_DIR, FONT_FILES[weight]), size)
@@ -167,7 +171,7 @@ def load_font(size, weight="medium"):
         return ImageFont.load_default()
 
 
-def shared_size(items, start, floor=MIN_FONT):
+def shared_size(items, start, floor=MIN_FONT, weight="medium"):
     """One type size that suits every card.
 
     If each card fitted its own caption, a short one would draw large and
@@ -183,7 +187,7 @@ def shared_size(items, start, floor=MIN_FONT):
     wanted = [(t, room) for t, room in items if t]
     size = int(start)
     while size > floor:
-        font = load_font(size)
+        font = load_font(size, weight)
         if all(ruler.textlength(t, font=font) <= room for t, room in wanted):
             return size
         size -= 1
@@ -215,7 +219,7 @@ def shared_wrapped_size(texts, room, start, max_lines, floor=MIN_FONT):
     ruler = ImageDraw.Draw(Image.new('RGB', (1, 1)))
     size = int(start)
     while size > floor:
-        font = load_font(size)
+        font = load_font(size, weight)
         if all(len(wrap_text(ruler, t, font, room)) <= max_lines
                for t in texts if t):
             return size
@@ -890,8 +894,16 @@ def draw_back(caption, location, stats, paper, head_size):
     # meant to keep. Sitting on the middle line, it stays clear of both
     # the frame and the divider whatever else changes.
     if BACK_NOTE:
-        note_font = load_font(int(NOTE_FONT * S), "hand")
-        d.text(((BORDER + INSET) * S, (CARD_H / 2) * S), BACK_NOTE,
+        # Fitted to the left half the same way the captions are: shrunk a
+        # point at a time until it clears the inset, never below MIN_FONT.
+        # Handwriting faces vary a lot in width at the same size, so this
+        # is what stops a change of font, or a longer note, running the
+        # words across the middle of the card.
+        lx0 = BORDER + INSET
+        note_size = shared_size([(BACK_NOTE, (mid - INSET) - lx0)],
+                                NOTE_FONT, weight="hand")
+        note_font = load_font(int(note_size * S), "hand")
+        d.text((lx0 * S, (CARD_H / 2) * S), BACK_NOTE,
                fill=FAINT, font=note_font, anchor='lm')
 
     # Everything below is inside the right half only.
@@ -1178,7 +1190,9 @@ def main():
     # server. A .js file loads either way, so postcards.html works when you
     # double-click it and when it is live.
     listing = os.path.join(OUT_DIR, 'gallery.js')
-    updated = datetime.now().strftime('%d %b %Y').lower()
+    # Written out in full, as 23 September 2026. lstrip drops the
+    # zero that %d puts in front of a single figure day.
+    updated = datetime.now().strftime('%d %B %Y').lstrip('0')
     with open(listing, 'w', encoding='utf-8') as f:
         f.write("window.WALKS = ")
         json.dump(gallery, f, indent=2)

@@ -154,4 +154,4 @@ window.WALKS = [
     "pauses": 9
   }
 ];
-window.UPDATED = "23 sep 2026";
+window.UPDATED = "23 September 2026";

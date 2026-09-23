@@ -276,7 +276,7 @@
 
       <div class="colophon">
         <div id="updated">Last updated: &mdash;</div>
-        <div>Source: My Strava, OSM</div>
+        <div>Source: Strava, OSM</div>
       </div>
     </div>
 
@@ -413,9 +413,21 @@ async function loadCaptions() {
     }
     return rows;
   } catch (err) {
-    // Opening this page straight from your computer, rather than over the
-    // web, stops a browser reading a file beside it. The captions baked
-    // into gallery.js stand in, and they are the ones on the cards anyway.
+    // Opening this page straight from your computer, by double-clicking
+    // it, stops a browser reading any file beside it. That is a rule of
+    // the browser's and there is no way round it from here, so the
+    // captions from the last run of run.bat stand in.
+    //
+    // Said out loud, because a silent fall-back here looks exactly like
+    // captions.txt being ignored: you edit a line, reload, and nothing
+    // moves. Open the page through a web address instead and the file is
+    // read normally.
+    console.warn(
+      "captions.txt could not be read, so the captions written by the last " +
+      "run of run.bat are being used instead. A browser will not read a " +
+      "file next to a page that was opened by double-clicking it. Serve " +
+      "the folder over http, or view the published site, to have this file " +
+      "read on every load.");
     return null;
   }
 }
