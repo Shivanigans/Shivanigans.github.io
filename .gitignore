@@ -16,3 +16,18 @@ __pycache__/
 # are a seventh of the weight. Noise does not compress, so committing the
 # PNGs added about 54 MB to the repository's history on every run.
 cards/*.png
+
+# OpenStreetMap extracts, one per walk. The site never loads them: they
+# are only what make_postcards.py draws the ground from. They also give
+# the exact streets a walk went down, which is finer than the city the
+# cards are willing to name, so they stay on this computer. get_maps.py
+# fetches them again if they are ever lost.
+walks/*.geojson
+
+# The earlier plates prototype, which postcards.html replaced. Kept on
+# disk and in the history, but not published: plates/ only ever held two
+# of the twelve walks, so walks.html would go out half finished.
+walks.html
+walk-plates-spec.md
+make_plates.py
+plates/
