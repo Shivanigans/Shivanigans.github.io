@@ -1015,7 +1015,13 @@ def load_captions():
                       f"it was skipped: {line}")
                 continue
 
-            rows[stem] = {"caption":  parts[1],
+            # The first letter is raised here rather than in the file, so
+            # a caption can be typed however it falls out and still come
+            # out as a title. Only the first letter: the rest is left
+            # exactly as written, so "st. johns", "rom-com" and "C9" are
+            # not tidied into something nobody asked for.
+            caption = parts[1]
+            rows[stem] = {"caption":  caption[:1].upper() + caption[1:],
                           "location": parts[2] if len(parts) > 2 else ""}
     return rows
 

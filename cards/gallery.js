@@ -2,7 +2,7 @@ window.WALKS = [
   {
     "name": "Walk to mcleodganj",
     "file": "Walk_to_mcleodganj",
-    "caption": "inevitable quiet walk post an argument",
+    "caption": "Inevitable quiet walk post an argument",
     "location": "Dharamsala, India",
     "front": "Walk_to_mcleodganj-front.webp",
     "back": "Walk_to_mcleodganj-back.webp",
@@ -30,7 +30,7 @@ window.WALKS = [
   {
     "name": "Walk to st johns",
     "file": "Walk_to_st_johns",
-    "caption": "underwhelming visit to st. johns",
+    "caption": "Underwhelming visit to st. johns",
     "location": "Dharamsala, India",
     "front": "Walk_to_st_johns-front.webp",
     "back": "Walk_to_st_johns-back.webp",
