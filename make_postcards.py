@@ -119,9 +119,16 @@ MIN_FONT   = 12       # the floor, for every piece of fitted text
 # same grain at roughly a seventh of that.
 WEB_QUALITY = 85
 
-CAPTIONS_FILE = "captions.json"   # your own captions and locations
+CAPTIONS_FILE = "captions.txt"    # your own captions and locations
 OUT_DIR       = "cards"
 SUPERSAMPLE   = 3     # draw big then shrink, so the lines come out smooth
+
+# A note to yourself in the empty left half of every back, which is the
+# space a photograph will go in later. Set in handwriting so it reads as
+# something scribbled there rather than as a label the card is meant to
+# keep. Set BACK_NOTE to "" to leave the space completely bare.
+BACK_NOTE = "i'm going to draw here -_-"
+NOTE_FONT = 40        # its size, in points at the card's own size
 # ---------------------------------------------------------------------------
 
 NS = {'g': 'http://www.topografix.com/GPX/1/1'}
@@ -134,6 +141,7 @@ FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 FONT_FILES = {
     "medium":  "JetBrainsMono-Medium.ttf",
     "regular": "JetBrainsMono-Regular.ttf",
+    "hand":    "Caveat-Regular.ttf",
 }
 # Only used if the bundled fonts have been deleted.
 FALLBACKS = ["consola.ttf", "DejaVuSansMono.ttf", "Menlo.ttc", "cour.ttf"]
@@ -142,7 +150,7 @@ _warned = set()
 
 
 def load_font(size, weight="medium"):
-    """JetBrains Mono at the weight asked for, from the fonts folder."""
+    """A font from the fonts folder: JetBrains Mono, or Caveat for "hand"."""
     try:
         return ImageFont.truetype(
             os.path.join(FONT_DIR, FONT_FILES[weight]), size)
@@ -849,8 +857,9 @@ def draw_front(walk, mpp, caption, location, stats, paper, geography,
 def draw_back(caption, location, stats, paper, head_size):
     """Postcard paper, a divider, and the walk's figures on the right.
 
-    The whole left half is left empty on purpose. That is the space for
-    photographs later, so nothing is drawn into it.
+    The left half is left empty on purpose. That is the space for
+    photographs later, so nothing is drawn into it but BACK_NOTE, a
+    handwritten reminder of what the space is for.
 
     No date and no times. They are the one thing here that would say where
     somebody was at a given moment, and the card is about the shape of a
@@ -874,6 +883,16 @@ def draw_back(caption, location, stats, paper, head_size):
     d.line([(mid * S, (BORDER + INSET * 0.5) * S),
             (mid * S, (CARD_H - BORDER - INSET * 0.5) * S)],
            fill=FAINT, width=hair)
+
+    # A note to yourself in the empty left half, where a photograph is
+    # going to go. Set in handwriting, small and faint, so it reads as
+    # something scribbled in the space rather than as a label the card is
+    # meant to keep. Sitting on the middle line, it stays clear of both
+    # the frame and the divider whatever else changes.
+    if BACK_NOTE:
+        note_font = load_font(int(NOTE_FONT * S), "hand")
+        d.text(((BORDER + INSET) * S, (CARD_H / 2) * S), BACK_NOTE,
+               fill=FAINT, font=note_font, anchor='lm')
 
     # Everything below is inside the right half only.
     rx0 = mid + INSET
@@ -947,33 +966,45 @@ def save_card(image, stem):
 
 
 def load_captions():
-    """Your own list of captions and locations, keyed by Strava name.
+    """Every walk's caption and location, read from one plain text file.
 
-    Each walk is written as:
+    The file is CAPTIONS_FILE, and each walk is a single line:
 
-        "Walk to mcleodganj": {
-          "caption":  "Walk to mcleodganj",
-          "location": "Dharamsala, India"
-        }
+        Walk_to_naddi | Offgrid in naddi | Dharamsala, India
 
-    Nothing here is worked out automatically. The location in particular
-    is yours to write, so it says a city and a country and never gives
-    away a street or a neighbourhood. A walk with no entry falls back to
-    its Strava name and shows no location at all.
+    The first part is the picture's file name, which is what ties the line
+    to a card. The caption and the location are yours to write and to
+    change whenever you like. Commas are safe, because only the | bar
+    separates the three parts.
+
+    Lines beginning with # are notes, and blank lines are ignored. A walk
+    with no line falls back to its Strava name and shows no location.
+
+    Kept as text rather than as code so that renaming a walk means editing
+    one line here, and touching nothing else.
     """
+    rows = {}
     if not os.path.exists(CAPTIONS_FILE):
-        return {}
-    with open(CAPTIONS_FILE, encoding='utf-8') as f:
-        raw = json.load(f)
+        return rows
 
-    tidy = {}
-    for name, entry in raw.items():
-        if isinstance(entry, str):        # the older caption-only format
-            tidy[name] = {"caption": entry, "location": ""}
-        else:
-            tidy[name] = {"caption": entry.get("caption") or name,
-                          "location": entry.get("location") or ""}
-    return tidy
+    with open(CAPTIONS_FILE, encoding='utf-8') as f:
+        for number, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            parts = [bit.strip() for bit in line.split('|')]
+            stem = parts[0]
+            if not stem:
+                continue
+            if len(parts) < 2:
+                print(f"  ! {CAPTIONS_FILE} line {number} has no | bar, so "
+                      f"it was skipped: {line}")
+                continue
+
+            rows[stem] = {"caption":  parts[1],
+                          "location": parts[2] if len(parts) > 2 else ""}
+    return rows
 
 
 def safe_name(name):
@@ -1018,7 +1049,7 @@ def main():
     # gallery reads evenly.
     written = []
     for walk in walks:
-        entry = captions.get(walk['name'], {})
+        entry = captions.get(safe_name(walk['name']), {})
         written.append((entry.get("caption") or walk['name'],
                         entry.get("location") or ""))
 
@@ -1052,13 +1083,14 @@ def main():
         stats = walk_stats(walk)
 
         # Captions and locations are yours to write, exactly as written.
-        entry = captions.get(walk['name'], {})
+        # Looked up by file name, so renaming a walk in CAPTIONS_FILE never
+        # breaks the link between a line and its card.
+        stem = safe_name(walk['name'])
+        entry = captions.get(stem, {})
         caption = entry.get("caption") or walk['name']
         location = entry.get("location") or ""
         if not location:
-            missing_places.append(walk['name'])
-
-        stem = safe_name(walk['name'])
+            missing_places.append(stem)
 
         # Buildings and roads, where this walk has a map file of its own.
         geography = None
@@ -1125,6 +1157,9 @@ def main():
 
         gallery.append({
             "name": walk['name'],
+            # The file name, which is what a line in CAPTIONS_FILE is keyed
+            # by. The page uses it to match a walk to its line.
+            "file": stem,
             "caption": caption,
             "location": location,
             "front": front_web,
@@ -1156,7 +1191,7 @@ def main():
               f"cards show a caption only.")
         print(f"Add one to {CAPTIONS_FILE} for each, as a city and country:")
         for name in missing_places:
-            print(f'  "{name}"')
+            print(f"  {name} | a caption | City, Country")
 
     if missing_maps:
         print(f"\n{'-' * 68}")

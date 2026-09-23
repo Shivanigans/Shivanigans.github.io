@@ -1,6 +1,7 @@
 window.WALKS = [
   {
     "name": "Walk to mcleodganj",
+    "file": "Walk_to_mcleodganj",
     "caption": "Walk to mcleodganj",
     "location": "Dharamsala, India",
     "front": "Walk_to_mcleodganj-front.webp",
@@ -14,6 +15,7 @@ window.WALKS = [
   },
   {
     "name": "Walk to naddi",
+    "file": "Walk_to_naddi",
     "caption": "Offgrid in naddi",
     "location": "Dharamsala, India",
     "front": "Walk_to_naddi-front.webp",
@@ -27,6 +29,7 @@ window.WALKS = [
   },
   {
     "name": "Walk to st johns",
+    "file": "Walk_to_st_johns",
     "caption": "Walk to st johns",
     "location": "Dharamsala, India",
     "front": "Walk_to_st_johns-front.webp",
@@ -40,6 +43,7 @@ window.WALKS = [
   },
   {
     "name": "Walk to Monday market",
+    "file": "Walk_to_Monday_market",
     "caption": "Walk to Monday market",
     "location": "Delhi, India",
     "front": "Walk_to_Monday_market-front.webp",
@@ -53,6 +57,7 @@ window.WALKS = [
   },
   {
     "name": "Walk in da park",
+    "file": "Walk_in_da_park",
     "caption": "Trying open gym equipement in C9",
     "location": "Delhi, India",
     "front": "Walk_in_da_park-front.webp",
@@ -66,6 +71,7 @@ window.WALKS = [
   },
   {
     "name": "Walking with a dog",
+    "file": "Walking_with_a_dog",
     "caption": "Walking with a dog",
     "location": "Greatest Noida, India",
     "front": "Walking_with_a_dog-front.webp",
@@ -79,6 +85,7 @@ window.WALKS = [
   },
   {
     "name": "Dog walked me",
+    "file": "Dog_walked_me",
     "caption": "Dog walked me",
     "location": "Greatest Noida, India",
     "front": "Dog_walked_me-front.webp",
@@ -92,6 +99,7 @@ window.WALKS = [
   },
   {
     "name": "Beautiful walk to work because it was raining",
+    "file": "Beautiful_walk_to_work_because_it_was_raining",
     "caption": "Beautiful walk to work because it was raining",
     "location": "Delhi, India",
     "front": "Beautiful_walk_to_work_because_it_was_raining-front.webp",
@@ -105,6 +113,7 @@ window.WALKS = [
   },
   {
     "name": "Birdwatching and biodiversity parking",
+    "file": "Birdwatching_and_biodiversity_parking",
     "caption": "Birdwatching and biodiversity parking",
     "location": "Delhi, India",
     "front": "Birdwatching_and_biodiversity_parking-front.webp",
@@ -118,6 +127,7 @@ window.WALKS = [
   },
   {
     "name": "Dosa run",
+    "file": "Dosa_run",
     "caption": "Dosa run",
     "location": "Bengaluru, India",
     "front": "Dosa_run-front.webp",
@@ -131,6 +141,7 @@ window.WALKS = [
   },
   {
     "name": "Kempagowda Security check-in and sprinting to see monisha",
+    "file": "Kempagowda_Security_check-in_and_sprinting_to_see_monisha",
     "caption": "Pulling a rom-com sprint",
     "location": "Bengaluru, India",
     "front": "Kempagowda_Security_check-in_and_sprinting_to_see_monisha-front.webp",

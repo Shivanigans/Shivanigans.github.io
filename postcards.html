@@ -25,6 +25,9 @@
     --left:   clamp(280px, 33vw, 460px);
     --gutter: clamp(24px, 4vw, 64px);
     --pad:    clamp(28px, 3.8vw, 72px);   /* the left panel's own padding */
+    /* One gap, used between the signature, the legend and the credits, so
+       the three blocks at the foot of the panel are evenly spaced. */
+    --stack:  clamp(18px, 3vh, 34px);
     color-scheme: light;
   }
   * { box-sizing: border-box; }
@@ -61,10 +64,18 @@
     border-right: 1px solid var(--rule);
     overflow-y: auto;
   }
-  /* margin-top:auto pushes this group to the foot and collects the slack
-     above it. The padding is only the minimum breathing room for when
-     there is no slack left to collect. */
-  .intro .bottom { margin-top: auto; padding-top: clamp(10px, 2vh, 34px); }
+  /* The top group grows to fill the panel and the signature is pushed to
+     its foot, so every bit of spare height collects above the signature.
+     That leaves the signature, the legend and the credits sitting one
+     --stack apart from each other whatever the screen height, instead of
+     the legend being shoved down against the credits. */
+  .intro .top { flex: 1 0 auto; display: flex; flex-direction: column; }
+  .intro .sign { margin-top: auto; margin-bottom: 0; }
+
+  /* Half of the gap sits above the rule and half below it, so the rule
+     lands in the middle of the space and signature-to-legend measures the
+     same --stack as legend-to-credits. */
+  .intro .bottom { padding-top: calc(var(--stack) / 2); }
 
   h1 {
     font-family: "Array", "JetBrains Mono", ui-monospace, monospace;
@@ -88,7 +99,7 @@
   .full-rule {
     border: 0;
     border-top: 1px solid var(--rule);
-    margin: 0 0 clamp(14px, 2vh, 24px) calc(var(--pad) * -1);
+    margin: 0 0 calc(var(--stack) / 2) calc(var(--pad) * -1);
     width: calc(100% + var(--pad));
   }
 
@@ -115,12 +126,42 @@
     line-height: 1.35;
   }
 
-  /* Sits under the legend, at the foot of the bottom group. The gap has
-     to be clearly wider than the gap between two legend rows, or the
-     credits read as one more row of the legend rather than as separate
-     information. */
+  /* The pause scale. Its circles are drawn at the size they come out on a
+     card shown at .card's own width, so the panel holds a real ruler you
+     can lay against the deck rather than a picture of one. They sit on a
+     common bottom line, which is what makes three sizes read as a scale
+     instead of as three separate marks. */
+  .pause-scale { margin-top: clamp(11px, 1.9vh, 18px); }
+  .pause-scale h3 {
+    margin: 0 0 clamp(8px, 1.3vh, 13px);
+    font-size: clamp(0.72rem, 1.5vh, 0.82rem);
+    font-weight: 400;
+    line-height: 1.35;
+    color: var(--soft);
+  }
+  .pause-scale .marks {
+    display: flex;
+    align-items: flex-end;
+    gap: clamp(10px, 1.6vw, 18px);
+  }
+  .pause-mark {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .pause-mark span {
+    font-size: clamp(0.64rem, 1.3vh, 0.72rem);
+    color: var(--soft);
+    white-space: nowrap;
+  }
+
+  /* Sits under the legend, one --stack below it, which is the same gap
+     that separates the legend from the signature above. The gap is wider
+     than the space between two legend rows, so the credits still read as
+     separate information rather than as one more row. */
   .colophon {
-    padding-top: clamp(22px, 4.4vh, 48px);
+    padding-top: var(--stack);
     font-size: 0.75rem;
     color: var(--soft);
   }
@@ -194,9 +235,11 @@
       overflow: visible;
       padding-right: var(--pad);
     }
-    /* Stacked, so the bottom group simply follows rather than being
-       pushed to the foot of a column that no longer exists. */
-    .intro .bottom { margin-top: 0; padding-top: clamp(24px, 5vh, 48px); }
+    /* Stacked, so nothing is pushed to the foot of a column that no
+       longer exists, and the signature keeps no slack above it. The three
+       blocks stay the same --stack apart as they are on a wide screen. */
+    .intro .top { flex: none; }
+    .intro .sign { margin-top: 0; }
     .deck { overflow: visible; padding-bottom: 12vh; scroll-snap-type: none; }
     .card { width: 100%; }
   }
@@ -228,6 +271,7 @@
       <div class="legend">
         <h2>Legend</h2>
         <dl id="legend"></dl>
+        <div class="pause-scale" id="pauseScale"></div>
       </div>
 
       <div class="colophon">
@@ -272,13 +316,6 @@ const LEGEND = [
              </svg>`,
     label: "end" },
 
-  { swatch: `<svg width="46" height="20" aria-hidden="true">
-               <circle cx="7"  cy="10" r="3.5" fill="#e13a3d" opacity="0.55"/>
-               <circle cx="20" cy="10" r="5.5" fill="#e13a3d" opacity="0.55"/>
-               <circle cx="36" cy="10" r="8"   fill="#e13a3d" opacity="0.55"/>
-             </svg>`,
-    label: "pauses, bigger means longer stood still" },
-
   { swatch: `<svg width="46" height="12" aria-hidden="true">
                <line x1="1" y1="6" x2="45" y2="6" stroke="#e13a3d"
                      stroke-width="3.4" stroke-linecap="butt"
@@ -296,16 +333,106 @@ const PACE = {
            </svg>`,
   label: "Avg. pace, slower to faster" };
 
+// The pause circles on a card are drawn by make_postcards.py as
+//
+//     radius = 6 + square root of seconds x 1.6
+//
+// in card pixels, on a card 1350 px wide. Nothing in that line depends on
+// the walk it is drawing, so a circle of a given size means the same
+// length of stop on every card in the deck. The scale below is built from
+// the same line, shrunk by the amount the page shrinks a card, so the
+// circles here come out the size they really are on screen.
+//
+// If you ever change that line, change this one to match, or the panel
+// will be telling the reader something the cards do not do.
+const CARD_WIDTH_PX  = 1350;   // a card as it is drawn
+const CARD_SHOWN_PX  = 624;    // a card as .card shows it
+const PAUSE_SHRINK   = CARD_SHOWN_PX / CARD_WIDTH_PX;
+
+function pauseRadius(seconds) {
+  return (6 + Math.sqrt(seconds) * 1.6) * PAUSE_SHRINK;
+}
+
+// Three round numbers spread across the range the walks actually contain.
+const PAUSE_SCALE = [60, 300, 600];
+
+function sayPause(seconds) {
+  return (seconds / 60) + " min";
+}
+
+function buildPauseScale() {
+  const marks = PAUSE_SCALE.map(secs => {
+    const r = pauseRadius(secs);
+    const box = Math.ceil(r * 2);
+    return `<div class="pause-mark">
+              <svg width="${box}" height="${box}" aria-hidden="true">
+                <circle cx="${box / 2}" cy="${box / 2}" r="${r.toFixed(2)}"
+                        fill="#e13a3d" opacity="0.55"/>
+              </svg>
+              <span>${sayPause(secs)}</span>
+            </div>`;
+  }).join("");
+
+  document.getElementById("pauseScale").innerHTML =
+    `<h3>Pauses, by how long you stood still</h3>
+     <div class="marks">${marks}</div>`;
+}
+
 function buildLegend(walks) {
   const rows = LEGEND.slice();
   if (walks.some(w => w.pace)) rows.push(PACE);
   document.getElementById("legend").innerHTML = rows
     .map(r => `<dt>${r.swatch}</dt><dd>${r.label}</dd>`).join("");
+  buildPauseScale();
 }
 
-function build() {
+// Captions and locations live in captions.txt, one line per walk, in the
+// same file make_postcards.py reads. The page reads it fresh every time it
+// loads, so changing a caption there changes what the page says about a
+// walk without anybody touching this file.
+//
+// Note what this can and cannot reach. The caption you SEE on a card is
+// painted into the picture itself, so it only changes when the cards are
+// drawn again. What this changes is the wording the page carries around
+// the pictures: the label a screen reader announces, and the description
+// read out in place of a card that has not loaded.
+async function loadCaptions() {
+  try {
+    const res = await fetch("captions.txt", { cache: "no-store" });
+    if (!res.ok) return null;
+
+    const rows = {};
+    for (const line of (await res.text()).split(/\r?\n/)) {
+      const text = line.trim();
+      if (!text || text.startsWith("#")) continue;
+
+      const parts = text.split("|").map(bit => bit.trim());
+      if (!parts[0] || parts.length < 2) continue;
+
+      rows[parts[0]] = { caption: parts[1], location: parts[2] || "" };
+    }
+    return rows;
+  } catch (err) {
+    // Opening this page straight from your computer, rather than over the
+    // web, stops a browser reading a file beside it. The captions baked
+    // into gallery.js stand in, and they are the ones on the cards anyway.
+    return null;
+  }
+}
+
+async function build() {
   const deck = document.getElementById("deck");
   const walks = window.WALKS;
+
+  const captions = await loadCaptions();
+  if (captions && walks) {
+    for (const walk of walks) {
+      const row = captions[walk.file];
+      if (!row) continue;
+      if (row.caption)  walk.caption  = row.caption;
+      if (row.location) walk.location = row.location;
+    }
+  }
 
   document.getElementById("updated").textContent =
     "Last updated: " + (window.UPDATED || "—");
