@@ -25,9 +25,13 @@
     --left:   clamp(280px, 33vw, 460px);
     --gutter: clamp(24px, 4vw, 64px);
     --pad:    clamp(28px, 3.8vw, 72px);   /* the left panel's own padding */
-    /* One gap, used between the signature, the legend and the credits, so
-       the three blocks at the foot of the panel are evenly spaced. */
-    --stack:  clamp(18px, 3vh, 34px);
+    /* The three gaps at the foot of the panel, measured off the reference
+       layout on a 1080px tall screen: 50px from the signature down to the
+       rule, 20px from the rule to the legend, and the rest of the height
+       left to fall between the legend and the credits. */
+    --gap-sign-rule:   clamp(20px, 4.1vh, 50px);
+    --gap-rule-legend: clamp(12px, 1.9vh, 24px);
+    --gap-legend-foot: clamp(16px, 2.5vh, 30px);
     color-scheme: light;
   }
   * { box-sizing: border-box; }
@@ -58,24 +62,30 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    /* 60px at the top, 72px on the left, and less at the foot, where
-       nothing sits and the extra only pushes the panel into scrolling. */
-    padding: clamp(24px, 3.2vw, 60px) 0 clamp(10px, 1.6vh, 40px) var(--pad);
+    /* 60px at the top, 72px on the left, and 42px at the foot, which is
+       what sits under the credits in the reference layout. */
+    padding: clamp(24px, 3.2vw, 60px) 0 clamp(16px, 3.9vh, 44px) var(--pad);
     border-right: 1px solid var(--rule);
     overflow-y: auto;
   }
-  /* The top group grows to fill the panel and the signature is pushed to
-     its foot, so every bit of spare height collects above the signature.
-     That leaves the signature, the legend and the credits sitting one
-     --stack apart from each other whatever the screen height, instead of
-     the legend being shoved down against the credits. */
-  .intro .top { flex: 1 0 auto; display: flex; flex-direction: column; }
-  .intro .sign { margin-top: auto; margin-bottom: 0; }
+  /* Where the spare height goes. The title, the words and the signature
+     sit where they fall at the top. The rule and the legend follow close
+     underneath, a fixed gap below the signature. Everything left over
+     gathers in one place, between the legend and the credits, which are
+     pushed down to the foot of the panel.
+     
+     So on a taller screen the legend stays with the words it belongs to
+     and the empty space opens up below it, rather than the legend drifting
+     down the page. */
+  .intro .top { flex: none; }
+  .intro .sign { margin-bottom: 0; }
 
-  /* Half of the gap sits above the rule and half below it, so the rule
-     lands in the middle of the space and signature-to-legend measures the
-     same --stack as legend-to-credits. */
-  .intro .bottom { padding-top: calc(var(--stack) / 2); }
+  .intro .bottom {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding-top: var(--gap-sign-rule);
+  }
 
   h1 {
     font-family: "Array", "JetBrains Mono", ui-monospace, monospace;
@@ -99,7 +109,7 @@
   .full-rule {
     border: 0;
     border-top: 1px solid var(--rule);
-    margin: 0 0 calc(var(--stack) / 2) calc(var(--pad) * -1);
+    margin: 0 0 var(--gap-rule-legend) calc(var(--pad) * -1);
     width: calc(100% + var(--pad));
   }
 
@@ -156,12 +166,12 @@
     white-space: nowrap;
   }
 
-  /* Sits under the legend, one --stack below it, which is the same gap
-     that separates the legend from the signature above. The gap is wider
-     than the space between two legend rows, so the credits still read as
-     separate information rather than as one more row. */
+  /* margin-top:auto pushes the credits to the foot of the panel and
+     collects the spare height above them. The padding is only the least
+     they will sit from the legend, for a screen with no slack to give. */
   .colophon {
-    padding-top: var(--stack);
+    margin-top: auto;
+    padding-top: var(--gap-legend-foot);
     font-size: 0.75rem;
     color: var(--soft);
   }
@@ -235,11 +245,10 @@
       overflow: visible;
       padding-right: var(--pad);
     }
-    /* Stacked, so nothing is pushed to the foot of a column that no
-       longer exists, and the signature keeps no slack above it. The three
-       blocks stay the same --stack apart as they are on a wide screen. */
-    .intro .top { flex: none; }
-    .intro .sign { margin-top: 0; }
+    /* Stacked, so there is no spare height for the credits to be pushed
+       into. They fall in below the legend at --gap-legend-foot, which is
+       what that gap is there for. */
+    .intro .bottom { flex: none; }
     .deck { overflow: visible; padding-bottom: 12vh; scroll-snap-type: none; }
     .card { width: 100%; }
   }
